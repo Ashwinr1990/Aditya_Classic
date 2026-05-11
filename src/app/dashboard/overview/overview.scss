@@ -1,0 +1,35 @@
+// Responsive styles for dashboard overview
+@media (max-width: 900px) {
+	.selector-card, .acmt-card {
+		flex-direction: column;
+		gap: 1rem !important;
+		padding: 1rem !important;
+		align-items: stretch !important;
+	}
+	table.acmt-table, table {
+		font-size: 0.95rem;
+		min-width: 400px !important;
+	}
+}
+
+@media (max-width: 600px) {
+	.selector-card, .acmt-card {
+		flex-direction: column;
+		gap: 0.5rem !important;
+		padding: 0.5rem !important;
+		align-items: stretch !important;
+	}
+	table.acmt-table, table {
+		font-size: 0.85rem;
+		min-width: 280px !important;
+		width: 100% !important;
+		overflow-x: auto;
+		display: block;
+	}
+	th, td {
+		padding: 0.4rem !important;
+	}
+	h2, h3 {
+		font-size: 1.1rem !important;
+	}
+}

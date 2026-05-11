@@ -1,3 +1,42 @@
+// Responsive styles for mobile
+@media (max-width: 900px) {
+	.main-nav {
+		flex-wrap: wrap;
+		gap: 1rem;
+		font-size: 1rem;
+		padding: 0.5rem 0;
+	}
+	header {
+		font-size: 1.3rem !important;
+		padding: 1rem 0 !important;
+	}
+	main {
+		padding: 0.5rem;
+	}
+}
+
+@media (max-width: 600px) {
+	.main-nav {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
+		padding: 0.25rem 0;
+	}
+	.main-nav a {
+		font-size: 1rem;
+		padding: 0.5rem 0.7rem;
+		border-radius: 1rem;
+		width: 100%;
+		text-align: center;
+	}
+	header {
+		font-size: 1.1rem !important;
+		padding: 0.7rem 0 !important;
+	}
+	main {
+		padding: 0.2rem;
+	}
+}
 /* Navigation styles */
 .main-nav {
 	display: flex;
