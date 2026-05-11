@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { promptPassword } from '../../password-util';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -30,43 +29,27 @@ export class List {
     this.items = data ? JSON.parse(data) : [];
   }
 
-  async saveItems() {
-    if (await promptPassword()) {
-      localStorage.setItem('commonItems', JSON.stringify(this.items));
-    } else {
-      alert('Incorrect password. Action cancelled.');
-    }
+  saveItems() {
+    localStorage.setItem('commonItems', JSON.stringify(this.items));
   }
 
-  async addItem() {
-    if (await promptPassword()) {
-      this.items.push({ desc: '', cost: 0, month: this.selectedMonth, year: this.selectedYear });
-      this.saveItems();
-    } else {
-      alert('Incorrect password. Action cancelled.');
-    }
+  addItem() {
+    this.items.push({ desc: '', cost: 0, month: this.selectedMonth, year: this.selectedYear });
+    this.saveItems();
   }
 
-  async removeItem(index: number) {
-    if (await promptPassword()) {
-      this.items.splice(index, 1);
-      this.saveItems();
-    } else {
-      alert('Incorrect password. Action cancelled.');
-    }
+  removeItem(index: number) {
+    this.items.splice(index, 1);
+    this.saveItems();
   }
 
-  async updateItem(index: number, field: 'desc' | 'cost', value: string) {
-    if (await promptPassword()) {
-      if (field === 'cost') {
-        this.items[index].cost = +value;
-      } else {
-        this.items[index].desc = value;
-      }
-      this.saveItems();
+  updateItem(index: number, field: 'desc' | 'cost', value: string) {
+    if (field === 'cost') {
+      this.items[index].cost = +value;
     } else {
-      alert('Incorrect password. Action cancelled.');
+      this.items[index].desc = value;
     }
+    this.saveItems();
   }
 
   getTotal(): number {

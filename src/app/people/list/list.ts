@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { promptPassword } from '../../password-util';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -27,11 +26,7 @@ export class List {
     this.showDialog = false;
   }
 
-  async addPerson() {
-    if (!(await promptPassword())) {
-      alert('Incorrect password. Action cancelled.');
-      return;
-    }
+  addPerson() {
     if (this.newPerson.name.trim() && this.newPerson.unit.trim()) {
       this.people.push({ ...this.newPerson });
       this.savePeople();
@@ -40,12 +35,8 @@ export class List {
     }
   }
 
-  async savePeople() {
-    if (await promptPassword()) {
-      localStorage.setItem('people', JSON.stringify(this.people));
-    } else {
-      alert('Incorrect password. Action cancelled.');
-    }
+  savePeople() {
+    localStorage.setItem('people', JSON.stringify(this.people));
   }
 
   loadPeople() {
