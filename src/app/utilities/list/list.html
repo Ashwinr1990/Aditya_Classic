@@ -1,0 +1,84 @@
+<h2>Utility Bills</h2>
+<div class="selector-card acmt-card" style="animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);">
+	<label class="selector-label" for="year">Year:
+		<select class="selector-select" id="year" [(ngModel)]="selectedYear" name="year">
+			<option *ngFor="let y of years()" [value]="y">{{ y }}</option>
+		</select>
+	</label>
+</div>
+
+<div style="overflow-x: auto; animation: fadeInUp 0.7s cubic-bezier(.4,2,.6,1);">
+<table class="acmt-table" style="min-width: 900px; animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);">
+	<thead style="background: #1976d2; color: #fff;">
+		<tr>
+			<th style="padding: 0.75rem; text-align: left;">Utility Type</th>
+			<th *ngFor="let month of months; let i = index" style="padding: 0.75rem; text-align: center;">{{ month }}</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let type of utilityTypes">
+			<td style="padding: 0.75rem;">{{ type }}</td>
+			<td *ngFor="let month of months; let i = index" style="padding: 0.5rem; text-align: center;">
+				<input type="number" min="0" [value]="getAmount(type, i)" (input)="setAmount(type, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
+			</td>
+		</tr>
+	</tbody>
+</table>
+</div>
+
+<h3 style="margin-top: 3rem;">Yearly Utility Summary</h3>
+<table class="acmt-table" style="max-width: 500px; margin-bottom: 2rem; margin-top: 1.5rem; animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);">
+	<thead style="background: #1976d2; color: #fff;">
+		<tr>
+			<th style="padding: 0.75rem; text-align: left;">Utility Type</th>
+			<th style="padding: 0.75rem; text-align: right;">Total (₹)</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let type of utilityTypes">
+			<td style="padding: 0.75rem;">{{ type }}</td>
+			<td style="padding: 0.75rem; text-align: right;">{{ getTotal(type) }}</td>
+		</tr>
+	</tbody>
+</table>
+
+<!-- Miscellaneous Table -->
+<h3 style="margin-top: 3rem;">Miscellaneous Expenses</h3>
+<form (ngSubmit)="addMisc()" #miscForm="ngForm" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+	<div>
+		<label>Name<br>
+			<input type="text" name="miscName" [(ngModel)]="newMisc.name" required style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+		</label>
+	</div>
+	<div>
+		<label>Cost (₹)<br>
+			<input type="number" name="miscCost" [(ngModel)]="newMisc.cost" required min="0" style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #ccc; width: 120px;">
+		</label>
+	</div>
+	<div>
+		<label>Purchased Date<br>
+			<input type="date" name="miscDate" [(ngModel)]="newMisc.date" required style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+		</label>
+	</div>
+	<button type="submit" [disabled]="miscForm.invalid" style="padding: 0.5rem 1.5rem; border-radius: 2rem; background: #1976d2; color: #fff; border: none; font-weight: 500; cursor: pointer;">Add</button>
+</form>
+
+<table style="width: 100%; max-width: 700px; border-collapse: collapse; background: #fff; box-shadow: 0 2px 8px #0001;">
+	<thead style="background: #1976d2; color: #fff;">
+		<tr>
+			<th style="padding: 0.75rem; text-align: left;">Name</th>
+			<th style="padding: 0.75rem; text-align: right;">Cost (₹)</th>
+			<th style="padding: 0.75rem; text-align: center;">Purchased Date</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let misc of miscellaneous">
+			<td style="padding: 0.75rem;">{{ misc.name }}</td>
+			<td style="padding: 0.75rem; text-align: right;">{{ misc.cost }}</td>
+			<td style="padding: 0.75rem; text-align: center;">{{ misc.date }}</td>
+		</tr>
+		<tr *ngIf="miscellaneous.length === 0">
+			<td colspan="3" style="padding: 1rem; text-align: center; color: #888;">No miscellaneous expenses added.</td>
+		</tr>
+	</tbody>
+</table>

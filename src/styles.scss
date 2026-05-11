@@ -1,0 +1,197 @@
+/* --- Official, Modern, Attractive UI Styles --- */
+.acmt-card {
+	background: #fff;
+	border-radius: 1.25rem;
+	box-shadow: 0 2px 16px #0001;
+	padding: 2rem 2.5rem;
+	margin-bottom: 2.5rem;
+ 	transition: box-shadow 0.3s cubic-bezier(.4,2,.6,1), transform 0.25s cubic-bezier(.4,2,.6,1);
+ 	animation: fadeInUp 0.7s cubic-bezier(.4,2,.6,1);
+}
+
+.acmt-card:hover {
+	box-shadow: 0 8px 32px #1976d233;
+	transform: translateY(-4px) scale(1.015);
+}
+
+.acmt-section-header {
+	font-size: 2.1rem;
+	font-weight: 700;
+	color: #1976d2;
+	margin-bottom: 1.5rem;
+	letter-spacing: 1px;
+	text-align: left;
+ 	animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);
+}
+
+.acmt-table {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	background: #fff;
+	border-radius: 1rem;
+	overflow: hidden;
+	box-shadow: 0 2px 12px #0001;
+	margin-bottom: 2rem;
+ 	animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);
+ 	transition: box-shadow 0.3s cubic-bezier(.4,2,.6,1), transform 0.2s cubic-bezier(.4,2,.6,1);
+}
+.acmt-table th, .acmt-table td {
+	padding: 0.85rem 1rem;
+	text-align: left;
+	font-size: 1.08rem;
+}
+.acmt-table th {
+	background: #1976d2;
+	color: #fff;
+	font-weight: 600;
+}
+.acmt-table tr:nth-child(even) td {
+	background: #f5f6fa;
+}
+.acmt-table tr {
+	transition: background 0.25s, transform 0.18s cubic-bezier(.4,2,.6,1);
+}
+.acmt-table tr:hover td {
+	background: #e3e6ef;
+}
+.acmt-table tr:hover {
+	transform: scale(1.01);
+}
+.acmt-table td {
+	border-bottom: 1px solid #e3e6ef;
+}
+.acmt-table tr:last-child td {
+	border-bottom: none;
+}
+
+.acmt-btn {
+	padding: 0.65rem 2rem;
+	border-radius: 0.75rem;
+	border: none;
+	background: linear-gradient(90deg, #1976d2 60%, #388e3c 100%);
+	color: #fff;
+	font-weight: bold;
+	font-size: 1.08rem;
+	cursor: pointer;
+	box-shadow: 0 1px 4px #0002;
+	margin-right: 1rem;
+	transition: background 0.2s, filter 0.2s;
+ 	transition: background 0.2s, filter 0.2s, transform 0.18s cubic-bezier(.4,2,.6,1);
+ 	animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);
+}
+.acmt-btn:last-child {
+	margin-right: 0;
+}
+.acmt-btn:hover {
+	filter: brightness(1.08);
+ 	transform: scale(1.06);
+}
+
+.acmt-divider {
+	height: 2px;
+	background: #e3e6ef;
+	margin: 2rem 0;
+	border-radius: 1px;
+	border: none;
+ 	animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);
+}
+
+/* Modal Animations */
+.modal-backdrop {
+	animation: fadeIn 0.4s cubic-bezier(.4,2,.6,1);
+}
+.modal-content {
+	animation: popIn 0.5s cubic-bezier(.4,2,.6,1);
+}
+
+/* Keyframes for Animations */
+@keyframes fadeIn {
+	0% { opacity: 0; }
+	100% { opacity: 1; }
+}
+@keyframes fadeInUp {
+	0% { opacity: 0; transform: translateY(40px); }
+	100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInDown {
+	0% { opacity: 0; transform: translateY(-40px); }
+	100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes popIn {
+	0% { opacity: 0; transform: scale(0.85); }
+	100% { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 700px) {
+	.acmt-card {
+		padding: 1rem 0.5rem;
+	}
+	.acmt-section-header {
+		font-size: 1.3rem;
+		padding-left: 0.5rem;
+	}
+	.acmt-table th, .acmt-table td {
+		font-size: 0.98rem;
+		padding: 0.5rem 0.5rem;
+	}
+}
+/* You can add global styles to this file, and also import other style files */
+
+body, html {
+	background: #f5f6fa !important;
+}
+
+/* Global selector card styles for month/year selectors */
+.selector-card {
+	background: #f8fafc;
+	border-radius: 1rem;
+	box-shadow: 0 2px 12px #0001;
+	padding: 1.5rem 2rem;
+	margin-bottom: 2rem;
+	display: flex;
+	gap: 2.5rem;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.selector-label {
+	font-weight: 600;
+	color: #1976d2;
+	margin-right: 0.5rem;
+	font-size: 1.1rem;
+}
+.selector-select {
+	padding: 0.5rem 1.5rem;
+	border-radius: 0.75rem;
+	border: 1.5px solid #1976d2;
+	background: #fff;
+	color: #222;
+	font-size: 1.1rem;
+	font-weight: 500;
+	outline: none;
+	transition: border 0.2s;
+	margin-right: 1.5rem;
+}
+.selector-select:focus {
+	border: 2px solid #388e3c;
+}
+.selector-btn {
+	padding: 0.6rem 2rem;
+	border-radius: 0.75rem;
+	border: none;
+	background: linear-gradient(90deg, #1976d2 60%, #388e3c 100%);
+	color: #fff;
+	font-weight: bold;
+	font-size: 1.1rem;
+	cursor: pointer;
+	box-shadow: 0 1px 4px #0002;
+	margin-right: 1rem;
+	transition: background 0.2s;
+}
+.selector-btn:last-child {
+	background: linear-gradient(90deg, #388e3c 60%, #1976d2 100%);
+	margin-right: 0;
+}
+.selector-btn:hover {
+	filter: brightness(1.08);
+}

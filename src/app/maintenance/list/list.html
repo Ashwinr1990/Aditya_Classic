@@ -1,0 +1,53 @@
+<!-- Move summary table below maintenance table -->
+
+<h2>Monthly Maintenance</h2>
+<div class="selector-card acmt-card animate__animated animate__fadeInDown">
+	<label class="selector-label" for="year">Year:
+		<select class="selector-select" id="year" [(ngModel)]="selectedYear" name="year">
+			<option *ngFor="let y of years()" [value]="y">{{ y }}</option>
+		</select>
+	</label>
+</div>
+
+<div style="overflow-x: auto;" class="animate__animated animate__fadeInUp">
+<table class="acmt-table animate__animated animate__fadeIn" style="min-width: 900px;">
+	<thead style="background: #1976d2; color: #fff;">
+		<tr>
+			<th style="padding: 0.75rem; text-align: left;">Name</th>
+			<!-- Full Date column removed -->
+			<th *ngFor="let month of months; let i = index" style="padding: 0.75rem; text-align: center;">{{ month }}</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let person of people">
+			<td style="padding: 0.75rem;">{{ person.name }}</td>
+			<!-- Full Date cell removed -->
+			<td *ngFor="let month of months; let i = index" style="padding: 0.5rem; text-align: center;">
+				<input type="number" min="0" [value]="getAmount(person.name, i)" (input)="setAmount(person.name, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
+			</td>
+		</tr>
+		<tr *ngIf="people.length === 0">
+			<td colspan="14" style="padding: 1rem; text-align: center; color: #888;">No people found. Please add people first.</td>
+		</tr>
+	</tbody>
+</table>
+</div>
+<!-- Yearly Collection Summary table moved below -->
+<h3 style="margin-top: 3rem;">Yearly Collection Summary</h3>
+<table class="acmt-table animate__animated animate__fadeIn" style="max-width: 500px; margin-bottom: 2rem; margin-top: 1.5rem;">
+	<thead style="background: #1976d2; color: #fff;">
+		<tr>
+			<th style="padding: 0.75rem; text-align: left;">Name</th>
+			<th style="padding: 0.75rem; text-align: right;">Total Collected (₹)</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let person of people">
+			<td style="padding: 0.75rem;">{{ person.name }}</td>
+			<td style="padding: 0.75rem; text-align: right;">{{ getTotal(person.name) }}</td>
+		</tr>
+		<tr *ngIf="people.length === 0">
+			<td colspan="2" style="padding: 1rem; text-align: center; color: #888;">No people found.</td>
+		</tr>
+	</tbody>
+</table>

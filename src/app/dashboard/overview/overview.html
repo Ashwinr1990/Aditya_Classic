@@ -1,0 +1,131 @@
+<h2>Dashboard</h2>
+
+<style>
+.selector-card {
+	background: #f8fafc;
+	border-radius: 1rem;
+	box-shadow: 0 2px 12px #0001;
+	padding: 1.5rem 2rem;
+	margin-bottom: 2rem;
+	display: flex;
+	gap: 2.5rem;
+	align-items: center;
+	flex-wrap: wrap;
+}
+.selector-label {
+	font-weight: 600;
+	color: #1976d2;
+	margin-right: 0.5rem;
+	font-size: 1.1rem;
+}
+.selector-select {
+	padding: 0.5rem 1.5rem;
+	border-radius: 0.75rem;
+	border: 1.5px solid #1976d2;
+	background: #fff;
+	color: #222;
+	font-size: 1.1rem;
+	font-weight: 500;
+	outline: none;
+	transition: border 0.2s;
+	margin-right: 1.5rem;
+}
+.selector-select:focus {
+	border: 2px solid #388e3c;
+}
+.selector-btn {
+	padding: 0.6rem 2rem;
+	border-radius: 0.75rem;
+	border: none;
+	background: linear-gradient(90deg, #1976d2 60%, #388e3c 100%);
+	color: #fff;
+	font-weight: bold;
+	font-size: 1.1rem;
+	cursor: pointer;
+	box-shadow: 0 1px 4px #0002;
+	margin-right: 1rem;
+	transition: background 0.2s;
+}
+.selector-btn:last-child {
+	background: linear-gradient(90deg, #388e3c 60%, #1976d2 100%);
+	margin-right: 0;
+}
+.selector-btn:hover {
+	filter: brightness(1.08);
+}
+</style>
+
+<div class="selector-card acmt-card" style="animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);">
+	<label class="selector-label">
+		Month:
+		<select class="selector-select" [(ngModel)]="selectedMonth" (change)="onSelectionChange()">
+			<option *ngFor="let m of months; let i = index" [value]="i">{{ m }}</option>
+		</select>
+	</label>
+	<label class="selector-label">
+		Year:
+		<select class="selector-select" [(ngModel)]="selectedYear" (change)="onSelectionChange()">
+			<option *ngFor="let y of years" [value]="y">{{ y }}</option>
+		</select>
+	</label>
+	<button class="selector-btn" (click)="refreshDashboard()">Refresh</button>
+	<button class="selector-btn" (click)="toggleShowAll()">
+		{{ showAll ? 'Show Month' : 'Show All' }}
+	</button>
+</div>
+<div style="margin-bottom: 2rem; margin-top: -1rem; display: flex; gap: 1.5rem; align-items: center;">
+	<span style="font-weight: 600; color: #1976d2; font-size: 1.1rem;">Data Backup & Restore:</span>
+	<button class="selector-btn" (click)="exportToExcel()" style="background: #388e3c;">Export All Data to Excel</button>
+	<label class="selector-btn" style="background: #1976d2; margin-bottom: 0; cursor: pointer;">
+		Import All Data from Excel
+		<input type="file" accept=".xlsx, .xls" (change)="importFromExcel($event)" style="display:none;" />
+	</label>
+</div>
+
+<div *ngIf="showAll" style="margin-top: 2rem;">
+	<h3>Month-wise Breakdown</h3>
+	<table border="1" style="width:100%">
+		<thead>
+			<tr>
+				<th>Month</th>
+				<th>Maintenance</th>
+				<th>Utilities</th>
+				<th>Security</th>
+				<th>Common Maintenance</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr *ngFor="let row of monthWiseSummary">
+				<td>{{ row.month }}</td>
+				<td>₹{{ row.maintenance }}</td>
+				<td>₹{{ row.utilities }}</td>
+				<td>₹{{ row.security }}</td>
+				<td>₹{{ row.common }}</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 2rem;">
+	<div style="flex: 2; min-width: 300px;">
+		<h3>Expense Tracker (Graph)</h3>
+		<!-- Chart.js graph placeholder -->
+		<canvas id="expenseChart"></canvas>
+	</div>
+	<div style="flex: 1; min-width: 300px;">
+		<h3>Summary Table</h3>
+		<table border="1" style="width:100%">
+			<thead>
+				<tr>
+					<th>Category</th>
+					<th>Amount</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr *ngFor="let row of summary; let i = index">
+					<td>{{ row.category }}</td>
+					<td>₹{{ row.thisMonth }}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>

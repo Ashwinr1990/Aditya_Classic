@@ -1,0 +1,56 @@
+<h2>Security Salary</h2>
+<div class="selector-card acmt-card" style="animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);">
+	<label class="selector-label" for="year">Year:
+		<select class="selector-select" id="year" [(ngModel)]="selectedYear" name="year">
+			<option *ngFor="let y of years()" [value]="y">{{ y }}</option>
+		</select>
+	</label>
+	<button class="selector-btn" (click)="addGuard()">Add Guard</button>
+</div>
+
+<div style="overflow-x: auto; animation: fadeInUp 0.7s cubic-bezier(.4,2,.6,1);">
+<table class="acmt-table" style="min-width: 900px; animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);">
+	<thead style="background: #1976d2; color: #fff;">
+		<tr>
+			<th style="padding: 0.75rem; text-align: left;">Guard Name</th>
+			<th *ngFor="let month of months; let i = index" style="padding: 0.75rem; text-align: center;">{{ month }}</th>
+			<th style="padding: 0.75rem; text-align: center;">Actions</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let guard of guards; let idx = index">
+			<td style="padding: 0.75rem; min-width: 160px;">
+				<input type="text" [(ngModel)]="guards[idx].name" (input)="editGuardName(idx, $event)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+			</td>
+			<td *ngFor="let month of months; let i = index" style="padding: 0.5rem; text-align: center;">
+				<input type="number" min="0" [value]="getAmount(guard.name, i)" (input)="setAmount(guard.name, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
+			</td>
+			<td style="padding: 0.5rem; text-align: center;">
+				<button (click)="removeGuard(idx)" style="padding: 0.25rem 1rem; border-radius: 1rem; background: #eee; color: #333; border: none; font-weight: 500; cursor: pointer;">Remove</button>
+			</td>
+		</tr>
+		<tr *ngIf="guards.length === 0">
+			<td colspan="15" style="padding: 1rem; text-align: center; color: #888;">No guards found. Please add guards.</td>
+		</tr>
+	</tbody>
+</table>
+</div>
+
+<h3 style="margin-top: 3rem;">Yearly Salary Summary</h3>
+<table class="acmt-table" style="max-width: 500px; margin-bottom: 2rem; margin-top: 1.5rem; animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);">
+	<thead style="background: #1976d2; color: #fff;">
+		<tr>
+			<th style="padding: 0.75rem; text-align: left;">Guard Name</th>
+			<th style="padding: 0.75rem; text-align: right;">Total Salary (₹)</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let guard of guards">
+			<td style="padding: 0.75rem;">{{ guard.name }}</td>
+			<td style="padding: 0.75rem; text-align: right;">{{ getTotal(guard.name) }}</td>
+		</tr>
+		<tr *ngIf="guards.length === 0">
+			<td colspan="2" style="padding: 1rem; text-align: center; color: #888;">No guards found.</td>
+		</tr>
+	</tbody>
+</table>

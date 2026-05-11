@@ -1,0 +1,66 @@
+<h2>People</h2>
+
+<div style="display: flex; justify-content: flex-end; margin-bottom: 1rem; animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);">
+	<button (click)="openDialog()" class="acmt-btn" style="border-radius: 2rem;">Add Person</button>
+</div>
+
+<!-- Modal Dialog -->
+<div *ngIf="showDialog" class="modal-backdrop" style="animation: fadeIn 0.4s cubic-bezier(.4,2,.6,1);">
+	<div class="modal-content" style="animation: popIn 0.5s cubic-bezier(.4,2,.6,1);">
+		<h3>Add Person</h3>
+		<form (ngSubmit)="addPerson()" #personForm="ngForm">
+			<div style="margin-bottom: 1rem;">
+				<label>Name<br>
+					<input type="text" name="name" [(ngModel)]="newPerson.name" required style="width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+				</label>
+			</div>
+			<div style="margin-bottom: 1rem;">
+				<label>House Number<br>
+					<input type="text" name="unit" [(ngModel)]="newPerson.unit" required style="width: 100%; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+				</label>
+			</div>
+			<div style="display: flex; gap: 1rem;">
+				<button type="submit" [disabled]="personForm.invalid" style="padding: 0.5rem 1.5rem; border-radius: 2rem; background: #1976d2; color: #fff; border: none; font-weight: 500; cursor: pointer;">Add</button>
+				<button type="button" (click)="closeDialog()" style="padding: 0.5rem 1.5rem; border-radius: 2rem; background: #eee; color: #333; border: none; font-weight: 500; cursor: pointer;">Cancel</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<style>
+.modal-backdrop {
+	position: fixed;
+	top: 0; left: 0; right: 0; bottom: 0;
+	background: rgba(0,0,0,0.2);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+.modal-content {
+	background: #fff;
+	padding: 2rem;
+	border-radius: 1rem;
+	box-shadow: 0 4px 24px #0002;
+	min-width: 320px;
+}
+</style>
+
+<table class="acmt-table" style="animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);">
+	<thead style="background: #1976d2; color: #fff;">
+		<tr>
+			<th style="padding: 0.75rem; text-align: left;">Name</th>
+			<th style="padding: 0.75rem; text-align: left;">Flat/Unit</th>
+
+		</tr>
+	</thead>
+	<tbody>
+		<tr *ngFor="let person of people" style="border-bottom: 1px solid #eee;">
+			<td style="padding: 0.75rem;">{{ person.name }}</td>
+			<td style="padding: 0.75rem;">{{ person.unit }}</td>
+		</tr>
+		<tr *ngIf="people.length === 0">
+			<td colspan="2" style="padding: 1rem; text-align: center; color: #888;">No people added yet.</td>
+		</tr>
+	</tbody>
+</table>

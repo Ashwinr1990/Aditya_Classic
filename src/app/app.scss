@@ -1,0 +1,26 @@
+/* Navigation styles */
+.main-nav {
+	display: flex;
+	gap: 1rem;
+	justify-content: center;
+	margin: 2rem 0;
+}
+.main-nav a {
+	padding: 0.5rem 1.5rem;
+	border-radius: 2rem;
+	text-decoration: none;
+	color: #333;
+	background: #f3f3f3;
+	font-weight: 500;
+	transition: background 0.2s, color 0.2s;
+	border: 1px solid transparent;
+}
+.main-nav a:hover {
+	background: #e0e0e0;
+	color: #1976d2;
+}
+.main-nav a.active {
+	background: #1976d2;
+	color: #fff;
+	border-color: #1976d2;
+}
