@@ -1,5 +1,6 @@
 // Removed stray top-level getTotal definition
 import { Component } from '@angular/core';
+import { promptPassword } from '../../password-util';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -34,8 +35,12 @@ export class List {
     this.maintenanceData = data ? JSON.parse(data) : {};
   }
 
-  saveMaintenance() {
-    localStorage.setItem('maintenanceData', JSON.stringify(this.maintenanceData));
+  async saveMaintenance() {
+    if (await promptPassword()) {
+      localStorage.setItem('maintenanceData', JSON.stringify(this.maintenanceData));
+    } else {
+      alert('Incorrect password. Action cancelled.');
+    }
   }
 
   getAmount(person: string, monthIdx: number): number | null {
@@ -44,13 +49,17 @@ export class List {
     return this.maintenanceData?.[year]?.[person]?.[month] ?? null;
   }
 
-  setAmount(person: string, monthIdx: number, value: string) {
-    const year = this.selectedYear.toString();
-    const month = (monthIdx + 1).toString().padStart(2, '0');
-    if (!this.maintenanceData[year]) this.maintenanceData[year] = {};
-    if (!this.maintenanceData[year][person]) this.maintenanceData[year][person] = {};
-    this.maintenanceData[year][person][month] = value ? +value : 0;
-    this.saveMaintenance();
+  async setAmount(person: string, monthIdx: number, value: string) {
+    if (await promptPassword()) {
+      const year = this.selectedYear.toString();
+      const month = (monthIdx + 1).toString().padStart(2, '0');
+      if (!this.maintenanceData[year]) this.maintenanceData[year] = {};
+      if (!this.maintenanceData[year][person]) this.maintenanceData[year][person] = {};
+      this.maintenanceData[year][person][month] = value ? +value : 0;
+      this.saveMaintenance();
+    } else {
+      alert('Incorrect password. Action cancelled.');
+    }
   }
 
   getFullDate(monthIdx: number): string {

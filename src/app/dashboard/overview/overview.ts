@@ -1,5 +1,6 @@
 // ...existing code...
 import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { promptPassword } from '../../password-util';
 import Chart from 'chart.js/auto';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -37,7 +38,11 @@ export class Overview implements AfterViewInit {
 
   constructor(private cdr: ChangeDetectorRef) {}
 
-  exportToExcel() {
+  async exportToExcel() {
+    if (!(await promptPassword())) {
+      alert('Incorrect password. Export cancelled.');
+      return;
+    }
     // Export ALL localStorage keys and values
     const wb = XLSX.utils.book_new();
     for (let i = 0; i < localStorage.length; i++) {
@@ -87,7 +92,11 @@ export class Overview implements AfterViewInit {
     }, 0);
   }
 
-  importFromExcel(event: any) {
+  async importFromExcel(event: any) {
+    if (!(await promptPassword())) {
+      alert('Incorrect password. Import cancelled.');
+      return;
+    }
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();

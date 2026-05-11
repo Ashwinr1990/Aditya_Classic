@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { promptPassword } from '../../password-util';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -35,8 +36,12 @@ export class List {
     this.utilityData = data ? JSON.parse(data) : {};
   }
 
-  saveUtilityData() {
-    localStorage.setItem('utilityData', JSON.stringify(this.utilityData));
+  async saveUtilityData() {
+    if (await promptPassword()) {
+      localStorage.setItem('utilityData', JSON.stringify(this.utilityData));
+    } else {
+      alert('Incorrect password. Action cancelled.');
+    }
   }
 
   getAmount(type: string, monthIdx: number): number | null {
@@ -45,13 +50,17 @@ export class List {
     return this.utilityData?.[year]?.[type]?.[month] ?? null;
   }
 
-  setAmount(type: string, monthIdx: number, value: string) {
-    const year = this.selectedYear.toString();
-    const month = (monthIdx + 1).toString().padStart(2, '0');
-    if (!this.utilityData[year]) this.utilityData[year] = {};
-    if (!this.utilityData[year][type]) this.utilityData[year][type] = {};
-    this.utilityData[year][type][month] = value ? +value : 0;
-    this.saveUtilityData();
+  async setAmount(type: string, monthIdx: number, value: string) {
+    if (await promptPassword()) {
+      const year = this.selectedYear.toString();
+      const month = (monthIdx + 1).toString().padStart(2, '0');
+      if (!this.utilityData[year]) this.utilityData[year] = {};
+      if (!this.utilityData[year][type]) this.utilityData[year][type] = {};
+      this.utilityData[year][type][month] = value ? +value : 0;
+      this.saveUtilityData();
+    } else {
+      alert('Incorrect password. Action cancelled.');
+    }
   }
 
   getTotal(type: string): number {
@@ -60,7 +69,11 @@ export class List {
     return Object.values(this.utilityData[year][type]).reduce((a, b) => a + b, 0);
   }
 
-  addMisc() {
+  async addMisc() {
+    if (!(await promptPassword())) {
+      alert('Incorrect password. Action cancelled.');
+      return;
+    }
     if (this.newMisc.name.trim() && this.newMisc.cost != null && this.newMisc.date) {
       this.miscellaneous.push({ ...this.newMisc });
       this.saveMiscellaneous();
@@ -68,8 +81,12 @@ export class List {
     }
   }
 
-  saveMiscellaneous() {
-    localStorage.setItem('miscellaneous', JSON.stringify(this.miscellaneous));
+  async saveMiscellaneous() {
+    if (await promptPassword()) {
+      localStorage.setItem('miscellaneous', JSON.stringify(this.miscellaneous));
+    } else {
+      alert('Incorrect password. Action cancelled.');
+    }
   }
 
   loadMiscellaneous() {
