@@ -2,6 +2,7 @@
 import { Component } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-list',
@@ -19,7 +20,7 @@ export class List {
   // Data structure: { [year]: { [personName]: { [month]: amount } } }
   maintenanceData: Record<string, Record<string, Record<string, number>>> = {};
 
-  constructor() {
+  constructor(private toast: ToastService) {
     this.loadPeople();
     this.loadMaintenance();
   }
@@ -36,6 +37,7 @@ export class List {
 
   saveMaintenance() {
     localStorage.setItem('maintenanceData', JSON.stringify(this.maintenanceData));
+    this.toast.showToast('Saved maintenance', 5000, 'success');
   }
 
   getAmount(person: string, monthIdx: number): number | null {

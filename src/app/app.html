@@ -183,9 +183,21 @@
 </style>
 
 
-<header style="background: #1976d2; color: #fff; padding: 1.5rem 0; text-align: center; font-size: 2.2rem; font-weight: bold; letter-spacing: 2px; border-radius: 0.5rem; margin-bottom: 0.5rem; position: sticky; top: 0; z-index: 1000;">
-  Aditya Classic Association
+<header class="site-header" style="background: #1976d2; color: #fff; padding: 0.9rem 1rem; font-size: 1.9rem; font-weight: bold; letter-spacing: 2px; border-radius: 0.5rem; margin-bottom: 0.5rem; position: sticky; top: 0; z-index: 1000;">
+  <div style="text-align:center; width:100%;">Aditya Classic Association</div>
+  <button class="nav-toggle" (click)="toggleNav()" aria-label="Toggle navigation">
+    <span class="hamburger"></span>
+  </button>
 </header>
+<style>
+/* hide mobile controls by default on larger screens */
+.nav-toggle { display: none; }
+.nav-close { display: none; }
+@media (max-width: 430px) {
+  .nav-toggle { display: flex !important; }
+  .nav-close { display: block; }
+}
+</style>
 <style>
 .main-nav {
   display: flex;
@@ -228,17 +240,148 @@
   color: #1976d2;
 }
 </style>
-<nav class="main-nav">
-  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
-  <a routerLink="/people" routerLinkActive="active">People</a>
-  <a routerLink="/maintenance" routerLinkActive="active">Maintenance</a>
-  <a routerLink="/utilities" routerLinkActive="active">Utilities</a>
-  <a routerLink="/security" routerLinkActive="active">Security</a>
-  <a routerLink="/common-maintenance" routerLinkActive="active">Common Maintenance</a>
+<style>
+/* Mobile nav toggle & overlay for small screens (target ~iPhone 15) */
+@media (max-width: 430px) {
+  .site-header { padding: 0.9rem 3.5rem 0.9rem 1rem; position: sticky; }
+  .nav-toggle {
+    display: flex !important;
+    position: absolute;
+    right: 12px;
+    top: 8px;
+    z-index: 1102;
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(90deg,#1976d2,#388e3c);
+    border-radius: 10rem;
+    border: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    color: #fff;
+  }
+  .nav-toggle .hamburger {
+    width: 18px;
+    height: 2px;
+    background: #fff;
+    position: relative;
+    display: inline-block;
+  }
+  .nav-toggle .hamburger::before,
+  .nav-toggle .hamburger::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #fff;
+  }
+  .nav-toggle .hamburger::before { top: -6px }
+  .nav-toggle .hamburger::after { top: 6px }
+
+  .main-nav {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 82%;
+    max-width: 360px;
+    /* translucent panel so content shows through */
+    background: rgba(255,255,255,0.58);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    transform: translateX(-110%);
+    transition: transform 320ms cubic-bezier(.2,.9,.2,1);
+    box-shadow: 6px 0 28px rgba(0,0,0,0.12);
+    padding-top: 4.2rem;
+    padding-bottom: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    align-items: stretch;
+    z-index: 1090;
+    border-radius: 0 12px 12px 0;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+  /* dim backdrop */
+  .nav-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.36);
+    opacity: 0;
+    transition: opacity 260ms ease;
+    pointer-events: none;
+    z-index: 1085;
+  }
+  .nav-backdrop.show { opacity: 1; pointer-events: auto; }
+
+  /* nav item staggered animation */
+  .main-nav a { opacity: 0; transform: translateX(-12px); }
+  .main-nav.mobile-open a { animation: navItemIn 360ms forwards cubic-bezier(.2,.9,.2,1); }
+  .main-nav.mobile-open a:nth-of-type(1) { animation-delay: 0.06s }
+  .main-nav.mobile-open a:nth-of-type(2) { animation-delay: 0.12s }
+  .main-nav.mobile-open a:nth-of-type(3) { animation-delay: 0.18s }
+  .main-nav.mobile-open a:nth-of-type(4) { animation-delay: 0.24s }
+  .main-nav.mobile-open a:nth-of-type(5) { animation-delay: 0.30s }
+  .main-nav.mobile-open a:nth-of-type(6) { animation-delay: 0.36s }
+
+  @keyframes navItemIn { to { opacity: 1; transform: translateX(0); } }
+  .main-nav.mobile-open { transform: translateX(0); }
+  .main-nav a { display: flex; align-items: center; gap: 0.8rem; padding: 1rem 1.25rem; font-size: 1.12rem; border-radius: 0; background: transparent; color: #125ea8; text-decoration: none; }
+  .main-nav a .nav-icon { display:inline-flex; width:22px; height:22px; align-items:center; justify-content:center; }
+  .main-nav a .nav-text { display:inline-block; font-weight:600; }
+  .main-nav a.active { margin-left: 0.75rem; margin-right: 0.75rem; background: linear-gradient(90deg, #2e7d32, #1976d2); color: #fff; padding-left: 1.1rem; padding-right: 1.1rem; border-radius: 8px; box-shadow: 0 6px 18px rgba(25,118,210,0.12); }
+  .nav-close {
+    position: absolute;
+    right: 0.5rem;
+    top: 0.6rem;
+    background: transparent;
+    border: none;
+    font-size: 1.45rem;
+    padding: 0.45rem 0.6rem;
+    cursor: pointer;
+  }
+  main { padding-top: 3.5rem; }
+}
+</style>
+
+<!-- backdrop that dims content when nav open -->
+<div class="nav-backdrop" [class.show]="showNav()" (click)="closeNav()"></div>
+
+<nav class="main-nav" [class.mobile-open]="showNav()">
+  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+    <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="#1976d2" d="M12 3l9 8h-3v8h-12v-8h-3z"></path></svg></span>
+    <span class="nav-text">Dashboard</span>
+  </a>
+  <a routerLink="/people" routerLinkActive="active">
+    <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="#1976d2" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm6 8v-1a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v1z"></path></svg></span>
+    <span class="nav-text">People</span>
+  </a>
+  <a routerLink="/maintenance" routerLinkActive="active">
+    <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="#1976d2" d="M21 7l-4-4-3 3 1 1-6 6-1-1-3 3 4 4 3-3 1 1 6-6 1 1 3-3z"></path></svg></span>
+    <span class="nav-text">Maintenance</span>
+  </a>
+  <a routerLink="/utilities" routerLinkActive="active">
+    <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="#1976d2" d="M13 2v8h7l-9 12v-8H4z"></path></svg></span>
+    <span class="nav-text">Utilities</span>
+  </a>
+  <a routerLink="/security" routerLinkActive="active">
+    <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="#1976d2" d="M12 1l8 4v6c0 5-3.9 9.7-8 11-4.1-1.3-8-6-8-11V5z"></path></svg></span>
+    <span class="nav-text">Security</span>
+  </a>
+  <a routerLink="/common-maintenance" routerLinkActive="active">
+    <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="#1976d2" d="M3 17v4h4l9-9-4-4-9 9z"></path></svg></span>
+    <span class="nav-text">Common Maintenance</span>
+  </a>
+  <button class="nav-close" (click)="closeNav()" aria-label="Close navigation">✕</button>
 </nav>
 <main>
   <router-outlet></router-outlet>
 </main>
+
+<!-- Global toast -->
+<div class="global-toast" [class.success]="toast.type === 'success'" [class.error]="toast.type === 'error'" [class.show]="toast.show">{{ toast.message }}</div>
 
 <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
 <!-- * * * * * * * * * * * The content above * * * * * * * * * * * * -->

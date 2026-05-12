@@ -1,3 +1,100 @@
+/* Financial panel styles */
+.financial-column {
+	flex: 1;
+	min-width: 260px;
+}
+.financial-panel {
+	background: #fff;
+	padding: 1rem;
+	border-radius: 0.75rem;
+	box-shadow: 0 2px 12px #0001;
+}
+.financial-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 0.5rem;
+}
+.financial-label { font-weight: 600; }
+.financial-label.collected { color: #1976d2; }
+.financial-label.used { color: #ffb300; }
+.financial-row.savings .financial-label { color: #388e3c; }
+.financial-value { font-weight: 800; }
+
+@media (max-width: 900px) {
+	.financial-panel { padding: 0.85rem; }
+}
+
+@media (max-width: 600px) {
+	.financial-row { margin-bottom: 0.35rem; }
+	.financial-value { font-size: 1rem; }
+}
+
+/* Positive/negative coloring */
+.positive .financial-value { color: #388e3c; }
+.negative .financial-value { color: #e53935; }
+
+/* Info button */
+.info {
+	border: none;
+	background: #1976d2;
+	color: #fff;
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 50%;
+	font-weight: 700;
+	font-size: 0.9rem;
+	margin-left: 0.5rem;
+	cursor: default;
+}
+
+.info[title]:hover {
+	filter: brightness(1.05);
+}
+
+/* tooltip styling for .info[data-tooltip] */
+.info[data-tooltip] {
+	position: relative;
+}
+.info[data-tooltip]:hover::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	bottom: calc(100% + 0.6rem);
+	white-space: nowrap;
+	background: rgba(0,0,0,0.85);
+	color: #fff;
+	padding: 0.45rem 0.6rem;
+	border-radius: 0.45rem;
+	font-size: 0.85rem;
+	z-index: 40;
+}
+
+/* savings animation */
+.financial-row.savings.animate .financial-value {
+	animation: pingColor 0.9s ease-in-out;
+}
+@keyframes pingColor {
+	0% { transform: scale(1); }
+	30% { transform: scale(1.06); }
+	60% { transform: scale(0.98); }
+	100% { transform: scale(1); }
+}
+
+/* toast */
+.toast {
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	background: rgba(0,0,0,0.85);
+	color: #fff;
+	padding: 0.75rem 1rem;
+	border-radius: 0.6rem;
+	box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+	z-index: 9999;
+}
+
 // Responsive styles for dashboard overview
 @media (max-width: 900px) {
 	.selector-card, .acmt-card {

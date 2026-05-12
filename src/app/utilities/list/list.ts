@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-list',
@@ -20,7 +21,7 @@ export class List {
   miscellaneous: { name: string; cost: number; date: string }[] = [];
   newMisc = { name: '', cost: null as any, date: '' };
 
-  constructor() {
+  constructor(private toast: ToastService) {
     this.loadUtilityData();
     this.loadMiscellaneous();
   }
@@ -37,6 +38,7 @@ export class List {
 
   saveUtilityData() {
     localStorage.setItem('utilityData', JSON.stringify(this.utilityData));
+    this.toast.showToast('Saved utilities', 5000, 'success');
   }
 
   getAmount(type: string, monthIdx: number): number | null {
@@ -70,6 +72,7 @@ export class List {
 
   saveMiscellaneous() {
     localStorage.setItem('miscellaneous', JSON.stringify(this.miscellaneous));
+    this.toast.showToast('Saved miscellaneous items', 5000, 'success');
   }
 
   loadMiscellaneous() {

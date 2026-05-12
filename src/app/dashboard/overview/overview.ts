@@ -1,13 +1,15 @@
 // ...existing code...
 import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import Chart from 'chart.js/auto';
-import { NgFor, NgIf } from '@angular/common';
+import { NgFor, NgIf, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-overview',
-  imports: [NgFor, NgIf, FormsModule],
+  // include Common directives used in template
+  imports: [NgFor, NgIf, NgClass, FormsModule],
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
 })
@@ -34,8 +36,50 @@ export class Overview implements AfterViewInit {
     { category: 'Common Maintenance', thisMonth: 0, lastMonth: 0 },
   ];
   monthWiseSummary: { month: string, maintenance: number, utilities: number, security: number, common: number }[] = [];
+  // Financial summary
+  collectedAmount: number = 0; // amount collected under Maintenance
+  usedAmount: number = 0; // sum of utilities, security, common maintenance
+  totalSavings: number = 0; // collected - used
+  // Formatted display strings
+  collectedAmountFormatted: string = '0';
+  usedAmountFormatted: string = '0';
+  totalSavingsFormatted: string = '0';
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  private nf = new Intl.NumberFormat('en-IN');
+  // animate savings on update
+  animateSavings = false;
+
+  // Download financials as a separate Excel file
+  downloadFinancials() {
+    try {
+      const wb = XLSX.utils.book_new();
+      const fin = [
+        { Metric: 'Collected', Amount: this.collectedAmount },
+        { Metric: 'Used', Amount: this.usedAmount },
+        { Metric: 'Savings', Amount: this.totalSavings }
+      ];
+      const ws = XLSX.utils.json_to_sheet(fin);
+      XLSX.utils.book_append_sheet(wb, ws, 'Financials');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/octet-stream' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ACMT-Financials.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 0);
+      // show global toast
+      this.toast.showToast('Financials downloaded', 5000, 'success');
+    } catch (e) {
+      console.error('Failed to download financials', e);
+    }
+  }
+
+  constructor(private cdr: ChangeDetectorRef, private toast: ToastService) {}
 
   exportToExcel() {
     // Export ALL localStorage keys and values
@@ -72,6 +116,18 @@ export class Overview implements AfterViewInit {
       }
       XLSX.utils.book_append_sheet(wb, ws, key);
     }
+    // Append financials sheet
+    try {
+      const fin = [
+        { Metric: 'Collected', Amount: this.collectedAmount },
+        { Metric: 'Used', Amount: this.usedAmount },
+        { Metric: 'Savings', Amount: this.totalSavings }
+      ];
+      const fws = XLSX.utils.json_to_sheet(fin);
+      XLSX.utils.book_append_sheet(wb, fws, 'Financials');
+    } catch (e) {
+      // ignore if unable to append
+    }
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     // Native browser download (no file-saver)
     const blob = new Blob([wbout], { type: 'application/octet-stream' });
@@ -92,35 +148,45 @@ export class Overview implements AfterViewInit {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e: any) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      let summary = 'Imported Sheets and Row Counts:\n';
-      // For each sheet, update localStorage
-      workbook.SheetNames.forEach(sheetName => {
-        const sheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
-        summary += `- ${sheetName}: ${json.length} rows\n`;
-        // Special handling for maintenanceData: convert array to nested object
-        if (sheetName === 'maintenanceData' && Array.isArray(json)) {
-          const nested: any = {};
-          json.forEach((row: any) => {
-            if (!row.year || !row.person || !row.month) return;
-            if (!nested[row.year]) nested[row.year] = {};
-            if (!nested[row.year][row.person]) nested[row.year][row.person] = {};
-            nested[row.year][row.person][row.month] = row.amount || 0;
-          });
-          localStorage.setItem(sheetName, JSON.stringify(nested));
-        } else if (["utilityData","salaryData"].includes(sheetName) && json.length > 0 && typeof json[0] === 'object') {
-          localStorage.setItem(sheetName, JSON.stringify(json[0]));
-        } else {
-          localStorage.setItem(sheetName, JSON.stringify(json));
-        }
-      });
-      // Reload dashboard data
-      this.loadData();
-      this.renderChart();
-      this.cdr.detectChanges();
-      // alert removed: Data imported from Excel!\n' + summary
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        let summary = 'Imported Sheets and Row Counts:\n';
+        // For each sheet, update localStorage
+        workbook.SheetNames.forEach(sheetName => {
+          const sheet = workbook.Sheets[sheetName];
+          const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
+          summary += `- ${sheetName}: ${json.length} rows\n`;
+          // Special handling for maintenanceData: convert array to nested object
+          if (sheetName === 'maintenanceData' && Array.isArray(json)) {
+            const nested: any = {};
+            json.forEach((row: any) => {
+              if (!row.year || !row.person || !row.month) return;
+              if (!nested[row.year]) nested[row.year] = {};
+              if (!nested[row.year][row.person]) nested[row.year][row.person] = {};
+              nested[row.year][row.person][row.month] = row.amount || 0;
+            });
+            localStorage.setItem(sheetName, JSON.stringify(nested));
+          } else if (["utilityData","salaryData"].includes(sheetName) && json.length > 0 && typeof json[0] === 'object') {
+            localStorage.setItem(sheetName, JSON.stringify(json[0]));
+          } else {
+            localStorage.setItem(sheetName, JSON.stringify(json));
+          }
+        });
+        // Reload dashboard data
+        this.loadData();
+        this.renderChart();
+        this.cdr.detectChanges();
+        // show global toast for import success
+        this.toast.showToast('Imported data', 5000, 'success');
+      } catch (err) {
+        console.error('Import failed', err);
+        this.toast.showToast('Import failed: invalid file or format', 5000, 'error');
+      }
+    };
+    reader.onerror = (ev) => {
+      console.error('File read error', ev);
+      this.toast.showToast('Failed to read file', 5000, 'error');
     };
     reader.readAsArrayBuffer(file);
   }
@@ -222,6 +288,17 @@ export class Overview implements AfterViewInit {
       this.summary[1].thisMonth = this.monthWiseSummary.reduce((sum: number, row) => sum + row.utilities, 0);
       this.summary[2].thisMonth = this.monthWiseSummary.reduce((sum: number, row) => sum + row.security, 0);
       this.summary[3].thisMonth = this.monthWiseSummary.reduce((sum: number, row) => sum + row.common, 0);
+      // compute collected/used/savings for the year (showAll)
+      this.collectedAmount = this.monthWiseSummary.reduce((s, r) => s + r.maintenance, 0);
+      this.usedAmount = this.monthWiseSummary.reduce((s, r) => s + r.utilities + r.security + r.common, 0);
+      this.totalSavings = this.collectedAmount - this.usedAmount;
+      this.collectedAmountFormatted = this.nf.format(this.collectedAmount);
+      this.usedAmountFormatted = this.nf.format(this.usedAmount);
+      this.totalSavingsFormatted = this.nf.format(this.totalSavings);
+      // trigger savings animation briefly
+      this.animateSavings = false;
+      setTimeout(() => { this.animateSavings = true; }, 20);
+      setTimeout(() => { this.animateSavings = false; }, 800);
     } else {
       this.monthWiseSummary = [];
       const monthStr = (thisMonthIdx + 1).toString().padStart(2, '0');
@@ -267,6 +344,17 @@ export class Overview implements AfterViewInit {
           .reduce((sum, item) => sum + (item.cost || 0), 0);
       }
       this.summary[3].thisMonth = commonThis;
+      // compute collected/used/savings for selected month
+      this.collectedAmount = maintThis;
+      this.usedAmount = utilThis + secThis + commonThis;
+      this.totalSavings = this.collectedAmount - this.usedAmount;
+      this.collectedAmountFormatted = this.nf.format(this.collectedAmount);
+      this.usedAmountFormatted = this.nf.format(this.usedAmount);
+      this.totalSavingsFormatted = this.nf.format(this.totalSavings);
+      // trigger savings animation briefly for year view
+      this.animateSavings = false;
+      setTimeout(() => { this.animateSavings = true; }, 20);
+      setTimeout(() => { this.animateSavings = false; }, 800);
     }
     this.cdr.detectChanges();
   }

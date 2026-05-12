@@ -128,4 +128,26 @@
 			</tbody>
 		</table>
 	</div>
+	<div class="financial-column">
+		<h3>Financials <button class="info" data-tooltip="Collected = sum of maintenance payments collected. Used = utilities + security salaries + common maintenance costs. Savings = Collected - Used.">i</button></h3>
+		<div class="financial-panel">
+			<div class="financial-row">
+				<span class="financial-label collected">Collected</span>
+				<span class="financial-value">₹{{ collectedAmountFormatted }}</span>
+			</div>
+			<div class="financial-row">
+				<span class="financial-label used">Used</span>
+				<span class="financial-value">₹{{ usedAmountFormatted }}</span>
+			</div>
+			<hr />
+			<div class="financial-row savings" [ngClass]="{ 'positive': totalSavings >= 0, 'negative': totalSavings < 0, 'animate': animateSavings }">
+				<span class="financial-label">Savings</span>
+				<span class="financial-value">₹{{ totalSavingsFormatted }}</span>
+			</div>
+			<div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
+				<button class="selector-btn" (click)="downloadFinancials()" style="padding:0.4rem 0.8rem; font-size:0.95rem;">Download Financials</button>
+			</div>
+		</div>
+	</div>
+	<!-- local toast removed; using global toast service -->
 </div>

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-list',
@@ -13,7 +14,7 @@ export class List {
   showDialog = false;
   newPerson = { name: '', unit: '' };
 
-  constructor() {
+  constructor(private toast: ToastService) {
     this.loadPeople();
   }
 
@@ -37,6 +38,7 @@ export class List {
 
   savePeople() {
     localStorage.setItem('people', JSON.stringify(this.people));
+    this.toast.showToast('Saved people', 5000, 'success');
   }
 
   loadPeople() {

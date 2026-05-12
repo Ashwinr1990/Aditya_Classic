@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-list',
@@ -18,7 +19,7 @@ export class List {
   // Data structure: { [year]: { [guardName]: { [month]: amount } } }
   salaryData: Record<string, Record<string, Record<string, number>>> = {};
 
-  constructor() {
+  constructor(private toast: ToastService) {
     this.loadGuards();
     this.loadSalaries();
   }
@@ -30,6 +31,7 @@ export class List {
 
   saveGuards() {
     localStorage.setItem('guards', JSON.stringify(this.guards));
+    this.toast.showToast('Saved guards', 5000, 'success');
   }
 
   loadSalaries() {
@@ -39,6 +41,7 @@ export class List {
 
   saveSalaries() {
     localStorage.setItem('salaryData', JSON.stringify(this.salaryData));
+    this.toast.showToast('Saved salaries', 5000, 'success');
   }
 
   getAmount(guard: string, monthIdx: number): number | null {
