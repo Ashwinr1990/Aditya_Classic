@@ -10,7 +10,7 @@ import { ToastService } from '../../services/toast.service';
   styleUrl: './list.scss',
 })
 export class List {
-  guards: { name: string }[] = [{ name: 'Uday' }];
+  guards: { name: string }[] = [];
   selectedYear = new Date().getFullYear();
   months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -26,7 +26,7 @@ export class List {
 
   loadGuards() {
     const data = localStorage.getItem('guards');
-    this.guards = data ? JSON.parse(data) : [{ name: 'Uday' }];
+    this.guards = data ? JSON.parse(data) : [];
   }
 
   saveGuards() {

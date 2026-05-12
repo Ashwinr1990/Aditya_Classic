@@ -106,6 +106,30 @@ export class Overview implements AfterViewInit {
         });
         parsed = maintenanceRows;
       }
+      // Special flatten for salaryData (security tab)
+      else if (key === 'salaryData' && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const salaryRows: any[] = [];
+        Object.entries(parsed).forEach(([year, guardsObj]: [string, any]) => {
+          Object.entries(guardsObj).forEach(([guard, monthsObj]: [string, any]) => {
+            Object.entries(monthsObj).forEach(([month, amount]: [string, any]) => {
+              salaryRows.push({ year, guard, month, amount });
+            });
+          });
+        });
+        parsed = salaryRows;
+      }
+      // Special flatten for utilityData
+      else if (key === 'utilityData' && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const utilRows: any[] = [];
+        Object.entries(parsed).forEach(([year, typesObj]: [string, any]) => {
+          Object.entries(typesObj).forEach(([type, monthsObj]: [string, any]) => {
+            Object.entries(monthsObj).forEach(([month, amount]: [string, any]) => {
+              utilRows.push({ year, type, month, amount });
+            });
+          });
+        });
+        parsed = utilRows;
+      }
       let ws;
       if (Array.isArray(parsed)) {
         ws = XLSX.utils.json_to_sheet(parsed);
@@ -167,7 +191,34 @@ export class Overview implements AfterViewInit {
               nested[row.year][row.person][row.month] = row.amount || 0;
             });
             localStorage.setItem(sheetName, JSON.stringify(nested));
-          } else if (["utilityData","salaryData"].includes(sheetName) && json.length > 0 && typeof json[0] === 'object') {
+          }
+          // Special handling for salaryData (security): convert array back to nested object
+          else if (sheetName === 'salaryData' && Array.isArray(json)) {
+            const nested: any = {};
+            json.forEach((row: any) => {
+              // accept either 'guard' or 'person' as the column name
+              const guardKey = row.guard ?? row.person;
+              if (!row.year || !guardKey || !row.month) return;
+              if (!nested[row.year]) nested[row.year] = {};
+              if (!nested[row.year][guardKey]) nested[row.year][guardKey] = {};
+              nested[row.year][guardKey][row.month] = row.amount || 0;
+            });
+            localStorage.setItem(sheetName, JSON.stringify(nested));
+          }
+          // Special handling for utilityData: convert array of rows back to nested object
+          else if (sheetName === 'utilityData' && Array.isArray(json)) {
+            const nested: any = {};
+            json.forEach((row: any) => {
+              // expect columns: year, type, month, amount
+              const typeKey = row.type ?? row.category;
+              if (!row.year || !typeKey || !row.month) return;
+              if (!nested[row.year]) nested[row.year] = {};
+              if (!nested[row.year][typeKey]) nested[row.year][typeKey] = {};
+              nested[row.year][typeKey][row.month] = row.amount || 0;
+            });
+            localStorage.setItem(sheetName, JSON.stringify(nested));
+          }
+          else if (["utilityData"].includes(sheetName) && json.length > 0 && typeof json[0] === 'object') {
             localStorage.setItem(sheetName, JSON.stringify(json[0]));
           } else {
             localStorage.setItem(sheetName, JSON.stringify(json));
