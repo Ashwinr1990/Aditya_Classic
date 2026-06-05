@@ -10,7 +10,7 @@ import { ToastService } from '../../services/toast.service';
   styleUrl: './list.scss',
 })
 export class List {
-  utilityTypes = ['Electricity', 'Water'];
+  utilityTypes = ['Electricity', 'Water', 'BBMP'];
   months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'

@@ -4,7 +4,7 @@
 <div class="selector-card acmt-card animate__animated animate__fadeInDown">
 	<label class="selector-label" for="year">Year:
 		<select class="selector-select" id="year" [(ngModel)]="selectedYear" name="year">
-			<option *ngFor="let y of years()" [value]="y">{{ y }}</option>
+			<option *ngFor="let y of years()" [ngValue]="y">{{ y }}</option>
 		</select>
 	</label>
 </div>

@@ -59,13 +59,13 @@
 	<label class="selector-label">
 		Month:
 		<select class="selector-select" [(ngModel)]="selectedMonth" (change)="onSelectionChange()">
-			<option *ngFor="let m of months; let i = index" [value]="i">{{ m }}</option>
+			<option *ngFor="let m of months; let i = index" [ngValue]="i">{{ m }}</option>
 		</select>
 	</label>
 	<label class="selector-label">
 		Year:
 		<select class="selector-select" [(ngModel)]="selectedYear" (change)="onSelectionChange()">
-			<option *ngFor="let y of years" [value]="y">{{ y }}</option>
+			<option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
 		</select>
 	</label>
 	<button class="selector-btn" (click)="refreshDashboard()">Refresh</button>
@@ -104,6 +104,77 @@
 			</tr>
 		</tbody>
 	</table>
+
+	<h3 style="margin-top: 2rem;">Utility Details (All Months)</h3>
+	<div style="overflow-x: auto;">
+		<table border="1" style="width:100%; min-width: 700px;">
+			<thead>
+				<tr>
+					<th>Month</th>
+					<th>Type</th>
+					<th>Details</th>
+					<th>Amount (₹)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr *ngFor="let row of utilityAllDetails">
+					<td>{{ row.month }}</td>
+					<td>{{ row.type }}</td>
+					<td>{{ row.details }}</td>
+					<td>₹{{ row.amount }}</td>
+				</tr>
+				<tr *ngIf="utilityAllDetails.length === 0">
+					<td colspan="4" style="text-align: center; padding: 0.8rem; color: #666;">No utility details found for selected year.</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<h3 style="margin-top: 2rem;">Security Salary Details (All Months)</h3>
+	<div style="overflow-x: auto;">
+		<table border="1" style="width:100%; min-width: 700px;">
+			<thead>
+				<tr>
+					<th>Month</th>
+					<th>Guard Name</th>
+					<th>Salary (₹)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr *ngFor="let row of securityAllDetails">
+					<td>{{ row.month }}</td>
+					<td>{{ row.guard }}</td>
+					<td>₹{{ row.amount }}</td>
+				</tr>
+				<tr *ngIf="securityAllDetails.length === 0">
+					<td colspan="3" style="text-align: center; padding: 0.8rem; color: #666;">No security salary details found for selected year.</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<h3 style="margin-top: 2rem;">Common Maintenance Details (All Months)</h3>
+	<div style="overflow-x: auto;">
+		<table border="1" style="width:100%; min-width: 700px;">
+			<thead>
+				<tr>
+					<th>Month</th>
+					<th>Item</th>
+					<th>Cost (₹)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr *ngFor="let row of commonAllDetails">
+					<td>{{ row.month }}</td>
+					<td>{{ row.item }}</td>
+					<td>₹{{ row.cost }}</td>
+				</tr>
+				<tr *ngIf="commonAllDetails.length === 0">
+					<td colspan="3" style="text-align: center; padding: 0.8rem; color: #666;">No common maintenance details found for selected year.</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 2rem;">
 	<div style="flex: 2; min-width: 300px;">

@@ -3,13 +3,13 @@
 	<label class="selector-label">
 		Month:
 		<select class="selector-select" [(ngModel)]="selectedMonth" (change)="onSelectionChange()">
-			<option *ngFor="let m of months; let i = index" [value]="i">{{ m }}</option>
+			<option *ngFor="let m of months; let i = index" [ngValue]="i">{{ m }}</option>
 		</select>
 	</label>
 	<label class="selector-label">
 		Year:
 		<select class="selector-select" [(ngModel)]="selectedYear" (change)="onSelectionChange()">
-			<option *ngFor="let y of years" [value]="y">{{ y }}</option>
+			<option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
 		</select>
 	</label>
 	<button class="selector-btn" (click)="addItem()">Add Item</button>
@@ -25,18 +25,18 @@
 		</tr>
 	</thead>
 	<tbody>
-		<tr *ngFor="let item of items; let idx = index" [hidden]="item.month !== selectedMonth || item.year !== selectedYear">
+		<tr *ngFor="let item of filteredItems">
 			<td style="padding: 0.75rem; min-width: 180px;">
-				<input type="text" [(ngModel)]="items[idx].desc" (input)="updateItem(idx, 'desc', $event.target.value)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+				<input type="text" [(ngModel)]="item.desc" (input)="updateItem(item, 'desc', $event.target.value)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
 			</td>
 			<td style="padding: 0.75rem; min-width: 120px; text-align: right;">
-				<input type="number" min="0" [(ngModel)]="items[idx].cost" (input)="updateItem(idx, 'cost', $event.target.value)" style="width: 100px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
+				<input type="number" min="0" [(ngModel)]="item.cost" (input)="updateItem(item, 'cost', $event.target.value)" style="width: 100px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
 			</td>
 			<td style="padding: 0.5rem; text-align: center;">
-				<button (click)="removeItem(idx)" style="padding: 0.25rem 1rem; border-radius: 1rem; background: #eee; color: #333; border: none; font-weight: 500; cursor: pointer;">Remove</button>
+				<button (click)="removeItem(item)" style="padding: 0.25rem 1rem; border-radius: 1rem; background: #eee; color: #333; border: none; font-weight: 500; cursor: pointer;">Remove</button>
 			</td>
 		</tr>
-		<tr *ngIf="items.length === 0">
+		<tr *ngIf="filteredItems.length === 0">
 			<td colspan="3" style="padding: 1rem; text-align: center; color: #888;">No items found. Please add items.</td>
 		</tr>
 	</tbody>

@@ -36,6 +36,9 @@ export class Overview implements AfterViewInit {
     { category: 'Common Maintenance', thisMonth: 0, lastMonth: 0 },
   ];
   monthWiseSummary: { month: string, maintenance: number, utilities: number, security: number, common: number }[] = [];
+  utilityAllDetails: Array<{ month: string; type: string; details: string; amount: number }> = [];
+  securityAllDetails: Array<{ month: string; guard: string; amount: number }> = [];
+  commonAllDetails: Array<{ month: string; item: string; cost: number }> = [];
   // Financial summary
   collectedAmount: number = 0; // amount collected under Maintenance
   usedAmount: number = 0; // sum of utilities, security, common maintenance
@@ -280,6 +283,9 @@ export class Overview implements AfterViewInit {
     const salaryData = JSON.parse(localStorage.getItem('salaryData') || '{}');
     const commonItems = JSON.parse(localStorage.getItem('commonItems') || '[]');
     const miscItems = JSON.parse(localStorage.getItem('miscellaneous') || '[]');
+    this.utilityAllDetails = [];
+    this.securityAllDetails = [];
+    this.commonAllDetails = [];
     let maintThis = 0, maintLast = 0;
     this.maintThisDetails = [];
     if (this.showAll) {
@@ -297,34 +303,71 @@ export class Overview implements AfterViewInit {
         // Utilities
         let util = 0;
         if (utilityData[year]) {
-          ['Electricity', 'Water'].forEach((type: string) => {
-            if (utilityData[year][type]) {
-              util += utilityData[year][type][monthStr] || 0;
+          Object.keys(utilityData[year]).forEach((type: string) => {
+            const monthValues = utilityData[year][type] || {};
+            if (Object.prototype.hasOwnProperty.call(monthValues, monthStr)) {
+              const amount = monthValues[monthStr] || 0;
+              util += amount;
+              this.utilityAllDetails.push({
+                month: this.months[m],
+                type,
+                details: '-',
+                amount,
+              });
             }
           });
         }
         // Miscellaneous
         let misc = 0;
         if (Array.isArray(miscItems)) {
-          misc = miscItems.filter((item: any) => {
+          const miscForMonth = miscItems.filter((item: any) => {
             if (!item.date) return false;
             const d = new Date(item.date);
             return d.getMonth() === m && d.getFullYear() === year;
-          }).reduce((sum: number, item: any) => sum + (item.cost || 0), 0);
+          });
+
+          misc = miscForMonth.reduce((sum: number, item: any) => sum + (item.cost || 0), 0);
+          miscForMonth.forEach((item: any) => {
+            this.utilityAllDetails.push({
+              month: this.months[m],
+              type: 'Miscellaneous',
+              details: item.name || '-',
+              amount: item.cost || 0,
+            });
+          });
         }
         util += misc;
         // Security
         let sec = 0;
         if (salaryData[year]) {
           for (const guard in salaryData[year]) {
-            sec += salaryData[year][guard][monthStr] || 0;
+            const guardMonths = salaryData[year][guard] || {};
+            if (Object.prototype.hasOwnProperty.call(guardMonths, monthStr)) {
+              const amount = guardMonths[monthStr] || 0;
+              sec += amount;
+              this.securityAllDetails.push({
+                month: this.months[m],
+                guard,
+                amount,
+              });
+            }
           }
         }
         // Common Maintenance
         let common = 0;
         if (Array.isArray(commonItems)) {
-          common = commonItems.filter((item: any) => item.month === m && item.year === year)
-            .reduce((sum: number, item: any) => sum + (item.cost || 0), 0);
+          const commonForMonth = commonItems.filter(
+            (item: any) => Number(item.month) === m && Number(item.year) === year
+          );
+
+          common = commonForMonth.reduce((sum: number, item: any) => sum + (item.cost || 0), 0);
+          commonForMonth.forEach((item: any) => {
+            this.commonAllDetails.push({
+              month: this.months[m],
+              item: item.desc || '-',
+              cost: item.cost || 0,
+            });
+          });
         }
         this.monthWiseSummary.push({
           month: this.months[m],
@@ -364,7 +407,7 @@ export class Overview implements AfterViewInit {
       this.summary[0].thisMonth = maintThis;
       // Utilities
       let utilThis = 0;
-      ['Electricity', 'Water'].forEach(type => {
+      ['Electricity', 'Water', 'BBMP'].forEach(type => {
         if (utilityData[year] && utilityData[year][type]) {
           utilThis += utilityData[year][type][monthStr] || 0;
         }
@@ -391,7 +434,7 @@ export class Overview implements AfterViewInit {
       // Common Maintenance
       let commonThis = 0;
       if (Array.isArray(commonItems)) {
-        commonThis = commonItems.filter(item => item.month === thisMonthIdx && item.year === year)
+        commonThis = commonItems.filter(item => Number(item.month) === thisMonthIdx && Number(item.year) === year)
           .reduce((sum, item) => sum + (item.cost || 0), 0);
       }
       this.summary[3].thisMonth = commonThis;

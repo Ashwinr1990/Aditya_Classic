@@ -30,6 +30,12 @@ export class List {
     this.items = data ? JSON.parse(data) : [];
   }
 
+  get filteredItems() {
+    return this.items.filter(
+      (item) => item.month === this.selectedMonth && item.year === this.selectedYear
+    );
+  }
+
   saveItems() {
     localStorage.setItem('commonItems', JSON.stringify(this.items));
     this.toast.showToast('Saved common maintenance', 5000, 'success');
@@ -40,12 +46,22 @@ export class List {
     this.saveItems();
   }
 
-  removeItem(index: number) {
+  removeItem(itemToRemove: { desc: string; cost: number; month: number; year: number }) {
+    const index = this.items.indexOf(itemToRemove);
+    if (index === -1) {
+      return;
+    }
+
     this.items.splice(index, 1);
     this.saveItems();
   }
 
-  updateItem(index: number, field: 'desc' | 'cost', value: string) {
+  updateItem(itemToUpdate: { desc: string; cost: number; month: number; year: number }, field: 'desc' | 'cost', value: string) {
+    const index = this.items.indexOf(itemToUpdate);
+    if (index === -1) {
+      return;
+    }
+
     if (field === 'cost') {
       this.items[index].cost = +value;
     } else {
@@ -61,6 +77,6 @@ export class List {
   }
 
   onSelectionChange() {
-    // Just trigger Angular change detection and save selection if needed
+    this.loadItems();
   }
 }

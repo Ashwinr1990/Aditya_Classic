@@ -94,7 +94,7 @@
 <div class="selector-card acmt-card" style="animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);">
 	<label class="selector-label" for="year">Year:
 		<select class="selector-select" id="year" [(ngModel)]="selectedYear" name="year">
-			<option *ngFor="let y of years()" [value]="y">{{ y }}</option>
+			<option *ngFor="let y of years()" [ngValue]="y">{{ y }}</option>
 		</select>
 	</label>
 	<button class="selector-btn" (click)="addGuard()">Add Guard</button>
