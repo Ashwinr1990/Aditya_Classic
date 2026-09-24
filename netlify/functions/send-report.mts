@@ -34,14 +34,20 @@ export default async (req: Request) => {
     return json({ error: 'No admin email is saved. Log out and in again as admin to add it, then try again.' }, 400);
   }
   // Google shows App Passwords in groups of four; spaces are not part of the password.
-  const pass = process.env['SMTP_PASS']?.replace(/\s+/g, '');
+  const pass = envVar('SMTP_PASS')?.replace(/\s+/g, '');
   if (!pass) {
+    // Names only (never values), to spot a misnamed variable or one not scoped to Functions.
+    const seen = Object.keys(process.env).filter(k => /smtp/i.test(k));
     return json({
       error: `Email is not set up yet: SMTP_PASS is missing. Create a Google App Password for ${adminEmail} and add it ` +
-        'in Netlify → Site configuration → Environment variables (scope: Functions), then redeploy.',
+        'in Netlify → Site configuration → Environment variables (scope: Functions), then redeploy. ' +
+        (seen.length
+          ? `Variables the function can see: ${seen.map(k => JSON.stringify(k)).join(', ')}` +
+            (seen.some(k => normalizeName(k) === 'SMTP_PASS') ? ' (SMTP_PASS exists but its value is empty).' : '.')
+          : 'The function sees no SMTP variables at all.'),
     }, 500);
   }
-  const smtpUser = process.env['SMTP_USER']?.trim();
+  const smtpUser = envVar('SMTP_USER')?.trim();
   if (smtpUser && smtpUser.toLowerCase() !== adminEmail.toLowerCase()) {
     return json({
       error: `Mail must go from the admin email ${adminEmail}, but Netlify's SMTP_USER is ${smtpUser}. ` +
@@ -101,6 +107,17 @@ export default async (req: Request) => {
 
   return json({ sent: recipients.length, from: user });
 };
+
+// Reads an env variable, tolerating different letter case or stray spaces in its name.
+function envVar(name: string): string | undefined {
+  if (process.env[name]) return process.env[name];
+  const key = Object.keys(process.env).find(k => normalizeName(k) === name);
+  return key ? process.env[key] : undefined;
+}
+
+function normalizeName(key: string): string {
+  return key.trim().toUpperCase();
+}
 
 async function savedEmails(): Promise<{ allowed: Set<string>; adminEmail: string | null }> {
   const data = await dataStore().get(FILE_KEY, { type: 'arrayBuffer' });
