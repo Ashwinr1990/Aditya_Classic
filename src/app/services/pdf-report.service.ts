@@ -42,6 +42,13 @@ export class PdfReportService {
     return { base64, fileName: this.fileName(year), report };
   }
 
+  /** The report as a File (for sharing to WhatsApp), plus its summary figures. */
+  async buildFile(year: number): Promise<{ file: File; report: YearReport }> {
+    const { doc, report } = await this.build(year);
+    const file = new File([doc.output('blob')], this.fileName(year), { type: 'application/pdf' });
+    return { file, report };
+  }
+
   fileName(year: number): string {
     return `ACMT-Report-${year}.pdf`;
   }

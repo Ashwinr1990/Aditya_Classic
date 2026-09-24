@@ -254,6 +254,9 @@
 		{{ exportingPdf ? 'Creating PDF...' : 'Download PDF Report' }}
 	</button>
 	<button class="selector-btn" (click)="openMailDialog()" style="background: #6a1b9a;">Send Email</button>
+	<button class="selector-btn" (click)="shareOnWhatsapp()" [disabled]="sharingWhatsapp" style="background: #128c7e;">
+		{{ sharingWhatsapp ? 'Preparing PDF...' : 'Share on WhatsApp' }}
+	</button>
 	<label class="selector-btn" style="background: #1976d2; margin-bottom: 0; cursor: pointer;">
 		Import All Data from Excel
 		<input type="file" accept=".xlsx, .xls" (change)="importFromExcel($event)" style="display:none;" />
@@ -325,7 +328,7 @@
 			Message <span class="mail-note">(optional)</span>
 			<textarea name="mailMessage" [(ngModel)]="mailMessage" rows="3" placeholder="Added to the email above the report summary"></textarea>
 		</label>
-		<p class="mail-note">All selected emails are in the To field, so recipients can see each other's addresses.</p>
+		<p class="mail-note">Each person gets a separate email, so recipients can't see each other's addresses.</p>
 		<p class="modal-error" *ngIf="mailError">{{ mailError }}</p>
 		<div class="modal-actions">
 			<button type="button" class="selector-btn" (click)="closeMailDialog()" [disabled]="sendingMail">Cancel</button>

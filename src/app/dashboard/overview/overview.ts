@@ -217,6 +217,65 @@ export class Overview implements AfterViewInit {
     }
   }
 
+  // Share the PDF report to WhatsApp through the phone's share sheet (the admin picks the chat or group).
+  // Desktop browsers can't share files, so there the PDF is downloaded and WhatsApp Web opens with the text.
+  sharingWhatsapp = false;
+  private whatsappFile: { year: number; file: File; text: string } | null = null;
+
+  async shareOnWhatsapp() {
+    if (this.sharingWhatsapp) return;
+    const year = this.selectedYear;
+    this.sharingWhatsapp = true;
+    this.cdr.detectChanges();
+    try {
+      if (this.whatsappFile?.year !== year) {
+        const { file, report } = await this.pdfReport.buildFile(year);
+        this.whatsappFile = { year, file, text: this.whatsappText(year, report) };
+      }
+      const { file, text } = this.whatsappFile;
+      this.whatsappFile = null; // rebuilt next time, so later edits are included
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], text });
+        } catch (e: any) {
+          // Building the PDF can outlast the tap that allows sharing; keep the file so tapping again works.
+          if (e?.name === 'NotAllowedError') {
+            this.whatsappFile = { year, file, text };
+            this.toast.showToast('PDF is ready. Tap "Share on WhatsApp" again.', 5000, 'info');
+          } else if (e?.name !== 'AbortError') throw e;
+        }
+      } else {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+        this.toast.showToast('PDF downloaded. Choose the chat in WhatsApp, then attach the PDF.', 7000, 'info');
+      }
+    } catch (e) {
+      console.error('WhatsApp share failed', e);
+      this.toast.showToast('Could not share the report', 5000, 'error');
+    } finally {
+      this.sharingWhatsapp = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private whatsappText(year: number, report: { collected: number; used: number; savings: number }): string {
+    const money = (v: number) => `${v < 0 ? '-' : ''}Rs. ${new Intl.NumberFormat('en-IN').format(Math.abs(v))}`;
+    return [
+      `*Aditya Classic Association - Financial Report ${year}*`,
+      '',
+      `Collected: ${money(report.collected)}`,
+      `Used: ${money(report.used)}`,
+      `Savings: ${money(report.savings)}`,
+      '',
+      'The full report is attached.',
+    ].join('\n');
+  }
+
   // Printable PDF report for the selected year
   exportingPdf = false;
   async exportToPdf() {
