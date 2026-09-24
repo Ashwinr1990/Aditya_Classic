@@ -194,6 +194,9 @@
     <span class="role-badge" [class.guest]="auth.readOnly()">
       {{ auth.readOnly() ? 'Guest · view only' : 'Admin' }}
     </span>
+    @if (auth.canEdit() && auth.adminEmail()) {
+    <span class="session-email" [attr.title]="auth.adminEmail()">{{ auth.adminEmail() }}</span>
+    }
     <button class="logout-btn" (click)="auth.logout()">Log out</button>
   </div>
 </header>
@@ -207,6 +210,15 @@
   font-size: 0.9rem;
   letter-spacing: 0;
   font-weight: 600;
+  flex-wrap: wrap;
+}
+.session-email {
+  font-weight: 500;
+  opacity: 0.95;
+  max-width: 60vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .role-badge {
   background: #388e3c;
@@ -420,6 +432,9 @@
 <main>
   <router-outlet></router-outlet>
 </main>
+
+<!-- Asks the admin for an email when none is saved -->
+<app-admin-email-prompt />
 
 <!-- Global toast -->
 <div class="global-toast" [class.success]="toast.type === 'success'" [class.error]="toast.type === 'error'" [class.show]="toast.show">{{ toast.message }}</div>

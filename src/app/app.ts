@@ -3,10 +3,11 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ToastService } from './services/toast.service';
 import { AuthService } from './services/auth.service';
 import { Login } from './login/login';
+import { AdminEmailPrompt } from './admin-email/admin-email-prompt';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Login],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Login, AdminEmailPrompt],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

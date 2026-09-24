@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 
-type Person = { name: string; unit: string };
+type Person = { name: string; unit: string; email?: string };
 // { [year]: { [personName]: { [month]: amount } } } — shared with the Maintenance page and dashboard
 type MaintenanceData = Record<string, Record<string, Record<string, number>>>;
 
@@ -17,7 +17,7 @@ type MaintenanceData = Record<string, Record<string, Record<string, number>>>;
 export class List {
   people: Person[] = [];
   showDialog = false;
-  newPerson: Person = { name: '', unit: '' };
+  newPerson: Person = { name: '', unit: '', email: '' };
   // Index of the person being edited, or null when adding
   editIndex: number | null = null;
   dialogError = '';
@@ -28,14 +28,14 @@ export class List {
 
   openDialog() {
     this.editIndex = null;
-    this.newPerson = { name: '', unit: '' };
+    this.newPerson = { name: '', unit: '', email: '' };
     this.dialogError = '';
     this.showDialog = true;
   }
 
   openEdit(index: number) {
     this.editIndex = index;
-    this.newPerson = { ...this.people[index] };
+    this.newPerson = { email: '', ...this.people[index] };
     this.dialogError = '';
     this.showDialog = true;
   }
@@ -46,8 +46,16 @@ export class List {
   }
 
   savePerson() {
-    const person = { name: this.newPerson.name.trim(), unit: this.newPerson.unit.trim() };
+    const person: Person = {
+      name: this.newPerson.name.trim(),
+      unit: this.newPerson.unit.trim(),
+      email: (this.newPerson.email ?? '').trim(),
+    };
     if (!person.name || !person.unit) return;
+    if (person.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person.email)) {
+      this.dialogError = 'Please enter a valid email address.';
+      return;
+    }
 
     // Maintenance amounts are stored by name, so names must be unique.
     const duplicate = this.people.some(

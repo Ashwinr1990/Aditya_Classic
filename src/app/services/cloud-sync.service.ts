@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { ToastService } from './toast.service';
-import { AuthService, Role } from './auth.service';
+import { ADMIN_PROFILE_KEY, AuthService, Role } from './auth.service';
 
 // localStorage keys that hold app data; each becomes one sheet in the workbook.
 export const DATA_KEYS = [
@@ -12,6 +12,7 @@ export const DATA_KEYS = [
   'guards',
   'salaryData',
   'commonItems',
+  ADMIN_PROFILE_KEY,
 ];
 
 // Nested { year: { name: { month: amount } } } keys, flattened to rows in Excel.
@@ -77,23 +78,31 @@ export class CloudSyncService {
       // Server unreachable (offline or dev server): check locally, work from this device's data.
       const offlineRole = await this.offlineRole(password);
       if (!offlineRole) throw new Error('Wrong password');
-      this.auth.setSession(offlineRole, password);
+      this.startSession(offlineRole, password);
       this.toast.showToast('Could not reach the cloud; showing data saved on this device', 6000, 'error');
       return;
     }
 
-    this.auth.setSession(role, password);
     this.enabled = true;
     if (res.status === 404) {
       // Nothing in the cloud yet: an admin uploads whatever this device already has.
+      this.startSession(role, password);
       if (role === 'admin') await this.save();
       return;
     }
     if (!res.ok) {
+      this.startSession(role, password);
       this.toast.showToast('Could not load data from cloud; showing data saved on this device', 6000, 'error');
       return;
     }
+    // Apply the cloud data before marking the user logged in, so pages never render stale data.
     this.applyWorkbook(await res.arrayBuffer(), false);
+    this.startSession(role, password);
+  }
+
+  private startSession(role: Role, password: string) {
+    this.auth.loadAdminEmail();
+    this.auth.setSession(role, password);
   }
 
   private async offlineRole(password: string): Promise<Role | null> {
@@ -110,29 +119,30 @@ export class CloudSyncService {
   buildWorkbook(): XLSX.WorkBook {
     const wb = XLSX.utils.book_new();
     for (const key of DATA_KEYS) {
-      let parsed: any;
-      try {
-        parsed = JSON.parse(localStorage.getItem(key) || 'null');
-      } catch {
-        parsed = null;
-      }
-      let rows: any[];
-      if (NESTED_KEYS[key]) {
-        rows = [];
-        const col = NESTED_KEYS[key];
-        Object.entries(parsed || {}).forEach(([year, namesObj]: [string, any]) => {
-          Object.entries(namesObj || {}).forEach(([name, monthsObj]: [string, any]) => {
-            Object.entries(monthsObj || {}).forEach(([month, amount]) => {
-              rows.push({ year, [col]: name, month, amount });
-            });
-          });
-        });
-      } else {
-        rows = Array.isArray(parsed) ? parsed : [];
-      }
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), key);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(this.sheetRows(key)), key);
     }
     return wb;
+  }
+
+  /** The rows stored in the sheet for one data key (nested data flattened to one row per amount). */
+  sheetRows(key: string): any[] {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(localStorage.getItem(key) || 'null');
+    } catch {
+      parsed = null;
+    }
+    const col = NESTED_KEYS[key];
+    if (!col) return Array.isArray(parsed) ? parsed : [];
+    const rows: any[] = [];
+    Object.entries(parsed || {}).forEach(([year, namesObj]: [string, any]) => {
+      Object.entries(namesObj || {}).forEach(([name, monthsObj]: [string, any]) => {
+        Object.entries(monthsObj || {}).forEach(([month, amount]) => {
+          rows.push({ year, [col]: name, month, amount });
+        });
+      });
+    });
+    return rows;
   }
 
   /**
@@ -147,7 +157,10 @@ export class CloudSyncService {
       workbook.SheetNames.forEach(sheetName => {
         if (!DATA_KEYS.includes(sheetName)) return;
         const json: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
-        let value: any = json;
+        // Drop empty cells, so e.g. a person without an email has no email field (as when entered in the app)
+        let value: any = json.map(row =>
+          Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null && v !== ''))
+        );
         if (NESTED_KEYS[sheetName]) {
           // accept the older 'person'/'category' column names too
           const col = NESTED_KEYS[sheetName];

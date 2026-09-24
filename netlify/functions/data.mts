@@ -1,5 +1,4 @@
-import { getStore } from '@netlify/blobs';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { FILE_KEY, RESET_PASSWORD_SHA256, dataStore, matchesHash, roleFor } from '../lib/auth.mts';
 
 // Stores the whole app data set as one Excel workbook in Netlify Blobs.
 // Every request sends the login password in the `x-acmt-password` header:
@@ -10,37 +9,15 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 // DELETE /.netlify/functions/data  -> delete the workbook and all backups
 //                                     (admin, plus the `x-acmt-reset-password` header)
 
-type Role = 'admin' | 'guest';
-
-const FILE_KEY = 'ACMT-Data.xlsx';
 const MAX_BYTES = 5 * 1024 * 1024;
 const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-// SHA-256 of each password, so the passwords themselves aren't stored in the code.
-const ROLE_PASSWORD_SHA256: Record<Role, string> = {
-  admin: '768c5aebaedd7dd4a97bf64af5f26067d75e4e61e884bdbca3742ccc7c4ceecc',
-  guest: '84983c60f7daadc1cb8698621f802c0d9f9a3c3c295c810748fb048115c186ec',
-};
-const RESET_PASSWORD_SHA256 = '446e91f0f78ae7b2e36c8cca141db3a36a1cb9eddd13560938e46a9d152ea3fb';
-
-function matchesHash(value: string | null, hexHash: string): boolean {
-  const given = createHash('sha256').update(value ?? '').digest();
-  return timingSafeEqual(given, Buffer.from(hexHash, 'hex'));
-}
-
-function roleFor(req: Request): Role | null {
-  const password = req.headers.get('x-acmt-password');
-  if (matchesHash(password, ROLE_PASSWORD_SHA256.admin)) return 'admin';
-  if (matchesHash(password, ROLE_PASSWORD_SHA256.guest)) return 'guest';
-  return null;
-}
 
 export default async (req: Request) => {
   const role = roleFor(req);
   if (!role) return new Response('Wrong password', { status: 401 });
   const roleHeader = { 'x-acmt-role': role, 'Cache-Control': 'no-store' };
 
-  const store = getStore({ name: 'acmt', consistency: 'strong' });
+  const store = dataStore();
 
   if (req.method === 'GET') {
     const data = await store.get(FILE_KEY, { type: 'arrayBuffer' });

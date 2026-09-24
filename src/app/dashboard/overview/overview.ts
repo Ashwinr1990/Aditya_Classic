@@ -3,10 +3,12 @@ import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import Chart from 'chart.js/auto';
 import { NgFor, NgIf, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import * as XLSX from 'xlsx';
 import { ToastService } from '../../services/toast.service';
 import { CloudSyncService } from '../../services/cloud-sync.service';
 import { AuthService } from '../../services/auth.service';
+import { ExcelReportService } from '../../services/excel-report.service';
+import { PdfReportService } from '../../services/pdf-report.service';
+import { MailRecipient, ReportMailService } from '../../services/report-mail.service';
 
 @Component({
   selector: 'app-overview',
@@ -54,33 +56,14 @@ export class Overview implements AfterViewInit {
   // animate savings on update
   animateSavings = false;
 
-  // Download financials as a separate Excel file
-  downloadFinancials() {
+  // Download the styled financial summary for the selected year
+  async downloadFinancials() {
     try {
-      const wb = XLSX.utils.book_new();
-      const fin = [
-        { Metric: 'Collected', Amount: this.collectedAmount },
-        { Metric: 'Used', Amount: this.usedAmount },
-        { Metric: 'Savings', Amount: this.totalSavings }
-      ];
-      const ws = XLSX.utils.json_to_sheet(fin);
-      XLSX.utils.book_append_sheet(wb, ws, 'Financials');
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([wbout], { type: 'application/octet-stream' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'ACMT-Financials.xlsx';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }, 0);
-      // show global toast
+      await this.excelReport.exportFinancials(this.selectedYear);
       this.toast.showToast('Financials downloaded', 5000, 'success');
     } catch (e) {
       console.error('Failed to download financials', e);
+      this.toast.showToast('Download failed', 5000, 'error');
     }
   }
 
@@ -88,6 +71,9 @@ export class Overview implements AfterViewInit {
     private cdr: ChangeDetectorRef,
     private toast: ToastService,
     private cloudSync: CloudSyncService,
+    private excelReport: ExcelReportService,
+    private pdfReport: PdfReportService,
+    private reportMail: ReportMailService,
     public auth: AuthService,
   ) {}
 
@@ -132,33 +118,87 @@ export class Overview implements AfterViewInit {
     }
   }
 
-  exportToExcel() {
-    const wb = this.cloudSync.buildWorkbook();
-    // Append financials sheet
+  // Email the PDF report to selected people
+  showMailDialog = false;
+  mailRecipients: MailRecipient[] = [];
+  mailWithoutEmail = 0;
+  mailSelected = new Set<string>();
+  mailMessage = '';
+  mailError = '';
+  sendingMail = false;
+
+  openMailDialog() {
+    const { list, withoutEmail } = this.reportMail.recipients();
+    this.mailRecipients = list;
+    this.mailWithoutEmail = withoutEmail;
+    this.mailSelected = new Set();
+    this.mailMessage = '';
+    this.mailError = '';
+    this.showMailDialog = true;
+  }
+
+  closeMailDialog() {
+    if (this.sendingMail) return;
+    this.showMailDialog = false;
+  }
+
+  toggleMail(email: string) {
+    if (this.mailSelected.has(email)) this.mailSelected.delete(email);
+    else this.mailSelected.add(email);
+  }
+
+  allMailSelected(): boolean {
+    return this.mailRecipients.length > 0 && this.mailSelected.size === this.mailRecipients.length;
+  }
+
+  toggleAllMail(checked: boolean) {
+    this.mailSelected = new Set(checked ? this.mailRecipients.map(r => r.email) : []);
+  }
+
+  async sendMail() {
+    if (this.sendingMail || this.mailSelected.size === 0) return;
+    this.sendingMail = true;
+    this.mailError = '';
+    this.cdr.detectChanges();
     try {
-      const fin = [
-        { Metric: 'Collected', Amount: this.collectedAmount },
-        { Metric: 'Used', Amount: this.usedAmount },
-        { Metric: 'Savings', Amount: this.totalSavings }
-      ];
-      const fws = XLSX.utils.json_to_sheet(fin);
-      XLSX.utils.book_append_sheet(wb, fws, 'Financials');
-    } catch (e) {
-      // ignore if unable to append
+      const { sent } = await this.reportMail.send(this.selectedYear, [...this.mailSelected], this.mailMessage);
+      this.showMailDialog = false;
+      this.toast.showToast(`Report emailed to ${sent} ${sent === 1 ? 'person' : 'people'}`, 5000, 'success');
+    } catch (e: any) {
+      this.mailError = e?.message ?? 'Sending failed.';
+    } finally {
+      this.sendingMail = false;
+      this.cdr.detectChanges();
     }
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    // Native browser download (no file-saver)
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'ACMT-Data.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    }, 0);
+  }
+
+  // Printable PDF report for the selected year
+  exportingPdf = false;
+  async exportToPdf() {
+    if (this.exportingPdf) return;
+    this.exportingPdf = true;
+    this.cdr.detectChanges();
+    try {
+      await this.pdfReport.exportYear(this.selectedYear);
+      this.toast.showToast('PDF downloaded', 5000, 'success');
+    } catch (e) {
+      console.error('PDF export failed', e);
+      this.toast.showToast('PDF export failed', 5000, 'error');
+    } finally {
+      this.exportingPdf = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  // Styled workbook: report sheets for the selected year plus all data sheets (re-importable)
+  async exportToExcel() {
+    try {
+      await this.excelReport.exportAll(this.selectedYear);
+      this.toast.showToast('Excel exported', 5000, 'success');
+    } catch (e) {
+      console.error('Export failed', e);
+      this.toast.showToast('Export failed', 5000, 'error');
+    }
   }
 
   importFromExcel(event: any) {
