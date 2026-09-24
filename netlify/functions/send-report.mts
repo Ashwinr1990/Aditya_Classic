@@ -5,7 +5,9 @@ import { FILE_KEY, dataStore, roleFor } from '../lib/auth.mts';
 
 // POST /.netlify/functions/send-report  (admin only)
 // Body: { year, recipients: string[], pdfBase64, fileName, message?, summary? }
-// Emails the PDF report through Gmail SMTP (env SMTP_USER / SMTP_PASS = Gmail address + App Password).
+// Emails the PDF report through Gmail SMTP, always FROM the admin email saved in the app.
+// Env: SMTP_PASS = Google App Password of that admin Gmail account.
+//      SMTP_USER = optional; if set it must equal the admin email (Gmail can only send as the signed-in account).
 // Recipients must be emails saved in the app (people or admin), so this can't be used to email strangers.
 // Everyone is BCC'd, so residents don't see each other's addresses.
 
@@ -26,11 +28,27 @@ export default async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   if (roleFor(req) !== 'admin') return json({ error: 'Only the admin can send emails' }, 403);
 
-  const user = process.env['SMTP_USER'];
-  const pass = process.env['SMTP_PASS'];
-  if (!user || !pass) {
-    return json({ error: 'Email is not set up yet: add SMTP_USER and SMTP_PASS in Netlify environment variables.' }, 500);
+  // Mail always goes from the admin email saved in the app.
+  const { allowed, adminEmail } = await savedEmails();
+  if (!adminEmail) {
+    return json({ error: 'No admin email is saved. Log out and in again as admin to add it, then try again.' }, 400);
   }
+  // Google shows App Passwords in groups of four; spaces are not part of the password.
+  const pass = process.env['SMTP_PASS']?.replace(/\s+/g, '');
+  if (!pass) {
+    return json({
+      error: `Email is not set up yet: SMTP_PASS is missing. Create a Google App Password for ${adminEmail} and add it ` +
+        'in Netlify → Site configuration → Environment variables (scope: Functions), then redeploy.',
+    }, 500);
+  }
+  const smtpUser = process.env['SMTP_USER']?.trim();
+  if (smtpUser && smtpUser.toLowerCase() !== adminEmail.toLowerCase()) {
+    return json({
+      error: `Mail must go from the admin email ${adminEmail}, but Netlify's SMTP_USER is ${smtpUser}. ` +
+        `Change SMTP_USER to ${adminEmail} (or delete it) and set SMTP_PASS to that account's App Password, then redeploy.`,
+    }, 500);
+  }
+  const user = adminEmail;
 
   let body: Body;
   try {
@@ -52,7 +70,6 @@ export default async (req: Request) => {
   }
 
   // Only emails saved in the app may receive the report.
-  const { allowed, adminEmail } = await savedEmails();
   const unknown = recipients.filter(e => !allowed.has(e));
   if (unknown.length) {
     return json({ error: `Not an email saved in the app: ${unknown.join(', ')}. Save the data and try again.` }, 400);
@@ -63,9 +80,8 @@ export default async (req: Request) => {
 
   try {
     await transporter.sendMail({
-      // Gmail only sends as the signed-in account; replies go to the admin email saved in the app.
       from: { name: 'Aditya Classic Association', address: user },
-      replyTo: adminEmail ?? user,
+      replyTo: user,
       to: { name: 'Aditya Classic Association', address: user },
       bcc: recipients,
       subject: `Aditya Classic Association · Financial Report ${year}`,
@@ -78,7 +94,7 @@ export default async (req: Request) => {
     const auth = e?.code === 'EAUTH' || e?.responseCode === 535;
     return json({
       error: auth
-        ? 'Gmail rejected the login. Check SMTP_USER and SMTP_PASS (it must be a Google App Password).'
+        ? `Gmail rejected the login for ${user}. SMTP_PASS must be a Google App Password created for that account.`
         : 'Sending failed. Please try again later.',
     }, 502);
   }

@@ -161,9 +161,9 @@ export class Overview implements AfterViewInit {
     this.mailError = '';
     this.cdr.detectChanges();
     try {
-      const { sent } = await this.reportMail.send(this.selectedYear, [...this.mailSelected], this.mailMessage);
+      const { sent, from } = await this.reportMail.send(this.selectedYear, [...this.mailSelected], this.mailMessage);
       this.showMailDialog = false;
-      this.toast.showToast(`Report emailed to ${sent} ${sent === 1 ? 'person' : 'people'}`, 5000, 'success');
+      this.toast.showToast(`Report emailed to ${sent} ${sent === 1 ? 'person' : 'people'} from ${from}`, 5000, 'success');
     } catch (e: any) {
       this.mailError = e?.message ?? 'Sending failed.';
     } finally {
