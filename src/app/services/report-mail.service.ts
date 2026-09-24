@@ -6,6 +6,7 @@ import { PdfReportService } from './pdf-report.service';
 export type MailRecipient = { name: string; detail: string; email: string };
 
 const SEND_URL = '/.netlify/functions/send-report';
+const SETTINGS_URL = '/.netlify/functions/mail-settings';
 
 /** Emails the yearly PDF report to selected people through the send-report Netlify function. */
 @Injectable({ providedIn: 'root' })
@@ -62,8 +63,47 @@ export class ReportMailService {
     }
     const data = await res.json().catch(() => null);
     if (!res.ok || !data) {
-      throw new Error(data?.error ?? `Sending failed (HTTP ${res.status}). Email only works on the deployed site.`);
+      throw new MailError(
+        data?.error ?? `Sending failed (HTTP ${res.status}). Email only works on the deployed site.`,
+        !!data?.setupNeeded,
+      );
     }
     return data;
+  }
+
+  /** Whether a Gmail App Password is configured (the password itself is never returned). */
+  async settings(): Promise<MailSettings> {
+    return this.settingsRequest('GET');
+  }
+
+  /** Saves the Gmail App Password after the server checks it with Gmail. */
+  async savePassword(password: string): Promise<MailSettings> {
+    await this.cloudSync.save(); // the server reads the admin email from the saved data
+    return this.settingsRequest('PUT', { password });
+  }
+
+  private async settingsRequest(method: 'GET' | 'PUT', body?: unknown): Promise<MailSettings> {
+    let res: Response;
+    try {
+      res = await fetch(SETTINGS_URL, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-acmt-password': this.auth.password },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new Error('Could not reach the server. Check your internet connection.');
+    }
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data) throw new Error(data?.error ?? `Request failed (HTTP ${res.status}).`);
+    return data;
+  }
+}
+
+export type MailSettings = { adminEmail: string | null; configured: boolean; source: 'netlify' | 'app' | null };
+
+/** A send failure; `setupNeeded` means the App Password is missing or was rejected by Gmail. */
+export class MailError extends Error {
+  constructor(message: string, readonly setupNeeded: boolean) {
+    super(message);
   }
 }

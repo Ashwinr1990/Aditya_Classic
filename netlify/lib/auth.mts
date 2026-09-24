@@ -31,3 +31,26 @@ export function roleFor(req: Request): Role | null {
 export function dataStore() {
   return getStore({ name: 'acmt', consistency: 'strong' });
 }
+
+/** Blob key of the Gmail App Password saved from the app (server-side only, never sent to browsers). */
+export const SMTP_PASS_KEY = 'settings/smtp-pass';
+
+/** Admin email saved in the app's data workbook, or null. */
+export async function savedAdminEmail(): Promise<string | null> {
+  const data = await dataStore().get(FILE_KEY, { type: 'arrayBuffer' });
+  if (!data) return null;
+  const XLSX = await import('xlsx/xlsx.mjs');
+  const wb = XLSX.read(new Uint8Array(data), { type: 'array' });
+  const sheet = wb.Sheets['adminProfile'];
+  const email = sheet ? XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)[0]?.['email'] : null;
+  return email ? String(email).trim() : null;
+}
+
+/** Gmail App Password: Netlify's SMTP_PASS env variable if set, else the one saved from the app. */
+export async function smtpPassword(): Promise<{ pass: string | null; source: 'netlify' | 'app' | null }> {
+  const envKey = Object.keys(process.env).find(k => k.trim().toUpperCase() === 'SMTP_PASS');
+  const env = envKey ? process.env[envKey]?.replace(/\s+/g, '') : '';
+  if (env) return { pass: env, source: 'netlify' };
+  const saved = await dataStore().get(SMTP_PASS_KEY, { type: 'text' });
+  return saved ? { pass: saved, source: 'app' } : { pass: null, source: null };
+}

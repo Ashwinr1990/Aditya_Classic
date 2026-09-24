@@ -1,13 +1,14 @@
 import nodemailer from 'nodemailer';
 // The ESM build: the default CommonJS build does a dynamic require() that fails in bundled ESM functions.
 import * as XLSX from 'xlsx/xlsx.mjs';
-import { FILE_KEY, dataStore, roleFor } from '../lib/auth.mts';
+import { FILE_KEY, dataStore, roleFor, smtpPassword } from '../lib/auth.mts';
 
 // POST /.netlify/functions/send-report  (admin only)
 // Body: { year, recipients: string[], pdfBase64, fileName, message?, summary? }
 // Emails the PDF report through Gmail SMTP, always FROM the admin email saved in the app.
-// Env: SMTP_PASS = Google App Password of that admin Gmail account.
-//      SMTP_USER = optional; if set it must equal the admin email (Gmail can only send as the signed-in account).
+// Password: Google App Password of that Gmail account — Netlify's SMTP_PASS variable, or the one saved
+//           from the app's Email setup (see mail-settings.mts).
+// SMTP_USER: optional; if set it must equal the admin email (Gmail can only send as the signed-in account).
 // Recipients must be emails saved in the app (people or admin), so this can't be used to email strangers.
 // Everyone is BCC'd, so residents don't see each other's addresses.
 
@@ -33,21 +34,14 @@ export default async (req: Request) => {
   if (!adminEmail) {
     return json({ error: 'No admin email is saved. Log out and in again as admin to add it, then try again.' }, 400);
   }
-  // Google shows App Passwords in groups of four; spaces are not part of the password.
-  const pass = envVar('SMTP_PASS')?.replace(/\s+/g, '');
+  const { pass } = await smtpPassword();
   if (!pass) {
-    // Names only (never values), to spot a misnamed variable or one not scoped to Functions.
-    const seen = Object.keys(process.env).filter(k => /smtp/i.test(k));
     return json({
-      error: `Email is not set up yet: SMTP_PASS is missing. Create a Google App Password for ${adminEmail} and add it ` +
-        'in Netlify → Site configuration → Environment variables (scope: Functions), then redeploy. ' +
-        (seen.length
-          ? `Variables the function can see: ${seen.map(k => JSON.stringify(k)).join(', ')}` +
-            (seen.some(k => normalizeName(k) === 'SMTP_PASS') ? ' (SMTP_PASS exists but its value is empty).' : '.')
-          : 'The function sees no SMTP variables at all.'),
-    }, 500);
+      setupNeeded: true,
+      error: `Email is not set up yet. Enter the Gmail App Password for ${adminEmail} in "Email setup" above.`,
+    }, 400);
   }
-  const smtpUser = envVar('SMTP_USER')?.trim();
+  const smtpUser = Object.entries(process.env).find(([k]) => k.trim().toUpperCase() === 'SMTP_USER')?.[1]?.trim();
   if (smtpUser && smtpUser.toLowerCase() !== adminEmail.toLowerCase()) {
     return json({
       error: `Mail must go from the admin email ${adminEmail}, but Netlify's SMTP_USER is ${smtpUser}. ` +
@@ -99,25 +93,15 @@ export default async (req: Request) => {
     console.error('sendMail failed', e);
     const auth = e?.code === 'EAUTH' || e?.responseCode === 535;
     return json({
+      setupNeeded: auth,
       error: auth
-        ? `Gmail rejected the login for ${user}. SMTP_PASS must be a Google App Password created for that account.`
+        ? `Gmail rejected the login for ${user}. Update the App Password in "Email setup" above.`
         : 'Sending failed. Please try again later.',
     }, 502);
   }
 
   return json({ sent: recipients.length, from: user });
 };
-
-// Reads an env variable, tolerating different letter case or stray spaces in its name.
-function envVar(name: string): string | undefined {
-  if (process.env[name]) return process.env[name];
-  const key = Object.keys(process.env).find(k => normalizeName(k) === name);
-  return key ? process.env[key] : undefined;
-}
-
-function normalizeName(key: string): string {
-  return key.trim().toUpperCase();
-}
 
 async function savedEmails(): Promise<{ allowed: Set<string>; adminEmail: string | null }> {
   const data = await dataStore().get(FILE_KEY, { type: 'arrayBuffer' });
