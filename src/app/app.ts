@@ -14,7 +14,33 @@ import { AdminEmailPrompt } from './admin-email/admin-email-prompt';
 export class App {
   protected readonly title = signal('ACMT');
   showNav = signal(false);
+  // Inline edit of the admin email in the header
+  editingEmail = signal(false);
+
   constructor(public toast: ToastService, public auth: AuthService) {}
+
+  startEditEmail() {
+    this.editingEmail.set(true);
+    // Focus and select the address once the input has rendered
+    setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>('.email-edit input');
+      input?.focus();
+      input?.select();
+    });
+  }
+
+  saveAdminEmail(value: string) {
+    const email = value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      this.toast.showToast('Please enter a valid email address', 4000, 'error');
+      return;
+    }
+    if (email !== this.auth.adminEmail()) {
+      this.auth.saveAdminEmail(email);
+      this.toast.showToast('Admin email updated', 4000, 'success');
+    }
+    this.editingEmail.set(false);
+  }
   private navKeyHandler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       this.closeNav();

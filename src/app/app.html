@@ -195,7 +195,18 @@
       {{ auth.readOnly() ? 'Guest · view only' : 'Admin' }}
     </span>
     @if (auth.canEdit() && auth.adminEmail()) {
-    <span class="session-email" [attr.title]="auth.adminEmail()">{{ auth.adminEmail() }}</span>
+      @if (editingEmail()) {
+      <form class="email-edit" (submit)="$event.preventDefault(); saveAdminEmail(emailInput.value)">
+        <input #emailInput type="email" [value]="auth.adminEmail()" aria-label="Admin email"
+               (keydown.escape)="editingEmail.set(false)" />
+        <button type="submit" class="email-save">Save</button>
+        <button type="button" class="email-cancel" (click)="editingEmail.set(false)">Cancel</button>
+      </form>
+      } @else {
+      <button type="button" class="session-email" (click)="startEditEmail()" title="Click to change the admin email">
+        {{ auth.adminEmail() }} <span aria-hidden="true">✎</span>
+      </button>
+      }
     }
     <button class="logout-btn" (click)="auth.logout()">Log out</button>
   </div>
@@ -213,12 +224,50 @@
   flex-wrap: wrap;
 }
 .session-email {
+  background: transparent;
+  color: #fff;
+  border: none;
+  border-bottom: 1px dashed #fff9;
+  padding: 0.1rem 0.2rem;
+  font: inherit;
   font-weight: 500;
-  opacity: 0.95;
+  cursor: pointer;
   max-width: 60vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.session-email:hover {
+  border-bottom-color: #fff;
+}
+.email-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.email-edit input {
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-size: 0.9rem;
+  width: min(260px, 60vw);
+}
+.email-edit button {
+  border: none;
+  border-radius: 1rem;
+  padding: 0.25rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.email-save {
+  background: #388e3c;
+  color: #fff;
+}
+.email-cancel {
+  background: #fff;
+  color: #1976d2;
 }
 .role-badge {
   background: #388e3c;
