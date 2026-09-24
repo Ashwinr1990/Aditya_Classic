@@ -1,6 +1,6 @@
 <!-- Move summary table below maintenance table -->
 
-<h2>Monthly Maintenance</h2>
+<h2>Aditya Classic Maintenance</h2>
 <div class="selector-card acmt-card animate__animated animate__fadeInDown">
 	<label class="selector-label" for="year">Year:
 		<select class="selector-select" id="year" [(ngModel)]="selectedYear" name="year">
@@ -23,7 +23,7 @@
 			<td style="padding: 0.75rem;">{{ person.name }}</td>
 			<!-- Full Date cell removed -->
 			<td *ngFor="let month of months; let i = index" style="padding: 0.5rem; text-align: center;">
-				<input type="number" min="0" [value]="getAmount(person.name, i)" (input)="setAmount(person.name, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
+				<input type="number" min="0" [readOnly]="auth.readOnly()" [value]="getAmount(person.name, i)" (input)="setAmount(person.name, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
 			</td>
 		</tr>
 		<tr *ngIf="people.length === 0">

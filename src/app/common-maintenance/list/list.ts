@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-list',
@@ -19,7 +20,7 @@ export class List {
   ];
   years: number[] = [];
 
-  constructor(private toast: ToastService) {
+  constructor(public auth: AuthService, private toast: ToastService) {
     this.loadItems();
     const currentYear = new Date().getFullYear();
     this.years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1, currentYear + 2];

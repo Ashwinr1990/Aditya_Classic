@@ -61,14 +61,11 @@
     color: var(--gray-700);
   }
 
+  /* Pages fill the full width (not centered/shrunk like the Angular starter layout) */
   main {
+    display: block;
     width: 100%;
-    min-height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    box-sizing: inherit;
+    box-sizing: border-box;
     position: relative;
   }
 
@@ -183,12 +180,53 @@
 </style>
 
 
+@if (!auth.loggedIn()) {
+<app-login />
+} @else {
 <header class="site-header" style="background: #1976d2; color: #fff; padding: 0.9rem 1rem; font-size: 1.9rem; font-weight: bold; letter-spacing: 2px; border-radius: 0.5rem; margin-bottom: 0.5rem; position: sticky; top: 0; z-index: 1000;">
+  @if (auth.canEdit()) {
   <button class="nav-toggle" (click)="toggleNav()" aria-label="Toggle navigation">
     <span class="hamburger"></span>
   </button>
+  }
   <div style="text-align:center; width:100%;">Aditya Classic Association</div>
+  <div class="session-bar">
+    <span class="role-badge" [class.guest]="auth.readOnly()">
+      {{ auth.readOnly() ? 'Guest · view only' : 'Admin' }}
+    </span>
+    <button class="logout-btn" (click)="auth.logout()">Log out</button>
+  </div>
 </header>
+<style>
+.session-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+.role-badge {
+  background: #388e3c;
+  padding: 0.2rem 0.75rem;
+  border-radius: 1rem;
+}
+.role-badge.guest {
+  background: #f9a825;
+  color: #222;
+}
+.logout-btn {
+  background: transparent;
+  color: #fff;
+  border: 1.5px solid #fff;
+  border-radius: 1rem;
+  padding: 0.2rem 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+</style>
 <style>
 /* hide mobile controls by default on larger screens */
 .nav-toggle { display: none; }
@@ -346,6 +384,8 @@
 }
 </style>
 
+<!-- Page menu is admin only; guests see just the dashboard -->
+@if (auth.canEdit()) {
 <!-- backdrop that dims content when nav open -->
 <div class="nav-backdrop" [class.show]="showNav()" (click)="closeNav()"></div>
 
@@ -376,6 +416,7 @@
   </a>
   <button class="nav-close" (click)="closeNav()" aria-label="Close navigation">✕</button>
 </nav>
+}
 <main>
   <router-outlet></router-outlet>
 </main>
@@ -391,5 +432,4 @@
 <!-- * * * * * * * * * * End of Placeholder  * * * * * * * * * * * * -->
 <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
 
-
-<router-outlet />
+}

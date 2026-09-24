@@ -5,6 +5,8 @@ import { NgFor, NgIf, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as XLSX from 'xlsx';
 import { ToastService } from '../../services/toast.service';
+import { CloudSyncService } from '../../services/cloud-sync.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-overview',
@@ -82,67 +84,56 @@ export class Overview implements AfterViewInit {
     }
   }
 
-  constructor(private cdr: ChangeDetectorRef, private toast: ToastService) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private toast: ToastService,
+    private cloudSync: CloudSyncService,
+    public auth: AuthService,
+  ) {}
+
+  // Clear-all-data dialog
+  showClearDialog = false;
+  clearPassword = '';
+  clearError = '';
+  clearing = false;
+
+  openClearDialog() {
+    this.clearPassword = '';
+    this.clearError = '';
+    this.showClearDialog = true;
+  }
+
+  closeClearDialog() {
+    if (this.clearing) return;
+    this.showClearDialog = false;
+  }
+
+  async confirmClearAll() {
+    if (!this.clearPassword || this.clearing) return;
+    const sure = window.confirm(
+      'Are you sure you want to delete ALL data and backups for everyone?\n\nThis cannot be undone.\n\nOK = Yes, delete everything\nCancel = No, keep my data'
+    );
+    if (!sure) {
+      this.showClearDialog = false;
+      this.toast.showToast('Clear cancelled; no data was deleted', 4000, 'info');
+      return;
+    }
+    this.clearing = true;
+    this.clearError = '';
+    this.cdr.detectChanges();
+    try {
+      await this.cloudSync.clearAllData(this.clearPassword);
+      // Reload so every page starts from empty data, like a new user.
+      window.location.href = '/';
+    } catch (e: any) {
+      this.clearError = e?.message ?? 'Delete failed.';
+      this.clearing = false;
+      this.cdr.detectChanges();
+    }
+  }
 
   exportToExcel() {
-    // Export ALL localStorage keys and values
-    const wb = XLSX.utils.book_new();
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-      let value = localStorage.getItem(key);
-      let parsed;
-      try {
-        parsed = JSON.parse(value || 'null');
-      } catch {
-        parsed = value;
-      }
-      // Special flatten for maintenanceData
-      if (key === 'maintenanceData' && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        const maintenanceRows: any[] = [];
-        Object.entries(parsed).forEach(([year, peopleObj]: [string, any]) => {
-          Object.entries(peopleObj).forEach(([person, monthsObj]: [string, any]) => {
-            Object.entries(monthsObj).forEach(([month, amount]: [string, any]) => {
-              maintenanceRows.push({ year, person, month, amount });
-            });
-          });
-        });
-        parsed = maintenanceRows;
-      }
-      // Special flatten for salaryData (security tab)
-      else if (key === 'salaryData' && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        const salaryRows: any[] = [];
-        Object.entries(parsed).forEach(([year, guardsObj]: [string, any]) => {
-          Object.entries(guardsObj).forEach(([guard, monthsObj]: [string, any]) => {
-            Object.entries(monthsObj).forEach(([month, amount]: [string, any]) => {
-              salaryRows.push({ year, guard, month, amount });
-            });
-          });
-        });
-        parsed = salaryRows;
-      }
-      // Special flatten for utilityData
-      else if (key === 'utilityData' && parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        const utilRows: any[] = [];
-        Object.entries(parsed).forEach(([year, typesObj]: [string, any]) => {
-          Object.entries(typesObj).forEach(([type, monthsObj]: [string, any]) => {
-            Object.entries(monthsObj).forEach(([month, amount]: [string, any]) => {
-              utilRows.push({ year, type, month, amount });
-            });
-          });
-        });
-        parsed = utilRows;
-      }
-      let ws;
-      if (Array.isArray(parsed)) {
-        ws = XLSX.utils.json_to_sheet(parsed);
-      } else if (typeof parsed === 'object' && parsed !== null) {
-        ws = XLSX.utils.json_to_sheet([parsed]);
-      } else {
-        ws = XLSX.utils.aoa_to_sheet([[parsed]]);
-      }
-      XLSX.utils.book_append_sheet(wb, ws, key);
-    }
+    const wb = this.cloudSync.buildWorkbook();
     // Append financials sheet
     try {
       const fin = [
@@ -176,57 +167,8 @@ export class Overview implements AfterViewInit {
     const reader = new FileReader();
     reader.onload = (e: any) => {
       try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        let summary = 'Imported Sheets and Row Counts:\n';
-        // For each sheet, update localStorage
-        workbook.SheetNames.forEach(sheetName => {
-          const sheet = workbook.Sheets[sheetName];
-          const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
-          summary += `- ${sheetName}: ${json.length} rows\n`;
-          // Special handling for maintenanceData: convert array to nested object
-          if (sheetName === 'maintenanceData' && Array.isArray(json)) {
-            const nested: any = {};
-            json.forEach((row: any) => {
-              if (!row.year || !row.person || !row.month) return;
-              if (!nested[row.year]) nested[row.year] = {};
-              if (!nested[row.year][row.person]) nested[row.year][row.person] = {};
-              nested[row.year][row.person][row.month] = row.amount || 0;
-            });
-            localStorage.setItem(sheetName, JSON.stringify(nested));
-          }
-          // Special handling for salaryData (security): convert array back to nested object
-          else if (sheetName === 'salaryData' && Array.isArray(json)) {
-            const nested: any = {};
-            json.forEach((row: any) => {
-              // accept either 'guard' or 'person' as the column name
-              const guardKey = row.guard ?? row.person;
-              if (!row.year || !guardKey || !row.month) return;
-              if (!nested[row.year]) nested[row.year] = {};
-              if (!nested[row.year][guardKey]) nested[row.year][guardKey] = {};
-              nested[row.year][guardKey][row.month] = row.amount || 0;
-            });
-            localStorage.setItem(sheetName, JSON.stringify(nested));
-          }
-          // Special handling for utilityData: convert array of rows back to nested object
-          else if (sheetName === 'utilityData' && Array.isArray(json)) {
-            const nested: any = {};
-            json.forEach((row: any) => {
-              // expect columns: year, type, month, amount
-              const typeKey = row.type ?? row.category;
-              if (!row.year || !typeKey || !row.month) return;
-              if (!nested[row.year]) nested[row.year] = {};
-              if (!nested[row.year][typeKey]) nested[row.year][typeKey] = {};
-              nested[row.year][typeKey][row.month] = row.amount || 0;
-            });
-            localStorage.setItem(sheetName, JSON.stringify(nested));
-          }
-          else if (["utilityData"].includes(sheetName) && json.length > 0 && typeof json[0] === 'object') {
-            localStorage.setItem(sheetName, JSON.stringify(json[0]));
-          } else {
-            localStorage.setItem(sheetName, JSON.stringify(json));
-          }
-        });
+        // Writes each data sheet into localStorage; auto-save then uploads it to the cloud
+        this.cloudSync.applyWorkbook(e.target.result);
         // Reload dashboard data
         this.loadData();
         this.renderChart();

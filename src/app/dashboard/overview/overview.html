@@ -53,6 +53,61 @@
 .selector-btn:hover {
 	filter: brightness(1.08);
 }
+.selector-btn.danger-btn {
+	background: #c62828;
+}
+.selector-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	background: #0008;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	z-index: 1000;
+}
+.modal-card {
+	background: #fff;
+	border-radius: 1rem;
+	padding: 1.5rem;
+	max-width: 440px;
+	width: 100%;
+	box-shadow: 0 8px 32px #0004;
+}
+.modal-card h3 {
+	margin-top: 0;
+	color: #c62828;
+}
+.modal-card label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	font-weight: 600;
+}
+.modal-card input {
+	padding: 0.5rem 0.75rem;
+	border-radius: 0.5rem;
+	border: 1.5px solid #999;
+	font-size: 1rem;
+}
+.modal-error {
+	color: #c62828;
+	font-weight: 600;
+}
+.modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.75rem;
+	margin-top: 1rem;
+	flex-wrap: wrap;
+}
+.modal-actions .selector-btn {
+	margin-right: 0;
+}
 </style>
 
 <div class="selector-card acmt-card" style="animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);">
@@ -68,11 +123,14 @@
 			<option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
 		</select>
 	</label>
+	@if (auth.canEdit()) {
 	<button class="selector-btn" (click)="refreshDashboard()">Refresh</button>
 	<button class="selector-btn" (click)="toggleShowAll()">
 		{{ showAll ? 'Show Month' : 'Show All' }}
 	</button>
+	}
 </div>
+@if (auth.canEdit()) {
 <div style="margin-bottom: 2rem; margin-top: -1rem; display: flex; gap: 1.5rem; align-items: center;">
 	<span style="font-weight: 600; color: #1976d2; font-size: 1.1rem;">Data Backup & Restore:</span>
 	<button class="selector-btn" (click)="exportToExcel()" style="background: #388e3c;">Export All Data to Excel</button>
@@ -80,6 +138,30 @@
 		Import All Data from Excel
 		<input type="file" accept=".xlsx, .xls" (change)="importFromExcel($event)" style="display:none;" />
 	</label>
+	<button class="selector-btn danger-btn" (click)="openClearDialog()">Clear All Data</button>
+</div>
+}
+
+<div class="modal-backdrop" *ngIf="showClearDialog" (click)="closeClearDialog()">
+	<form class="modal-card" (click)="$event.stopPropagation()" (ngSubmit)="confirmClearAll()">
+		<h3>Clear all data?</h3>
+		<p>
+			This permanently deletes every record (people, maintenance, utilities, security, common maintenance),
+			the saved Excel file and all its backups, for <strong>everyone</strong> using the app.
+			The app will then start fresh like a new install. This cannot be undone.
+		</p>
+		<label>
+			Password
+			<input type="password" name="clearPassword" [(ngModel)]="clearPassword" autocomplete="off" required autofocus />
+		</label>
+		<p class="modal-error" *ngIf="clearError">{{ clearError }}</p>
+		<div class="modal-actions">
+			<button type="button" class="selector-btn" (click)="closeClearDialog()" [disabled]="clearing">Cancel</button>
+			<button type="submit" class="selector-btn danger-btn" [disabled]="clearing || !clearPassword">
+				{{ clearing ? 'Deleting...' : 'Delete everything' }}
+			</button>
+		</div>
+	</form>
 </div>
 
 <div *ngIf="showAll" style="margin-top: 2rem;">
@@ -215,9 +297,11 @@
 				<span class="financial-label">Savings</span>
 				<span class="financial-value">₹{{ totalSavingsFormatted }}</span>
 			</div>
+			@if (auth.canEdit()) {
 			<div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
 				<button class="selector-btn" (click)="downloadFinancials()" style="padding:0.4rem 0.8rem; font-size:0.95rem;">Download Financials</button>
 			</div>
+			}
 		</div>
 	</div>
 	<!-- local toast removed; using global toast service -->

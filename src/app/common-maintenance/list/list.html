@@ -12,7 +12,9 @@
 			<option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
 		</select>
 	</label>
+	@if (auth.canEdit()) {
 	<button class="selector-btn" (click)="addItem()">Add Item</button>
+	}
 </div>
 
 <div style="overflow-x: auto; animation: fadeInUp 0.7s cubic-bezier(.4,2,.6,1);">
@@ -27,13 +29,15 @@
 	<tbody>
 		<tr *ngFor="let item of filteredItems">
 			<td style="padding: 0.75rem; min-width: 180px;">
-				<input type="text" [(ngModel)]="item.desc" (input)="updateItem(item, 'desc', $event.target.value)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+				<input type="text" [readOnly]="auth.readOnly()" [(ngModel)]="item.desc" (input)="updateItem(item, 'desc', $event.target.value)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
 			</td>
 			<td style="padding: 0.75rem; min-width: 120px; text-align: right;">
-				<input type="number" min="0" [(ngModel)]="item.cost" (input)="updateItem(item, 'cost', $event.target.value)" style="width: 100px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
+				<input type="number" min="0" [readOnly]="auth.readOnly()" [(ngModel)]="item.cost" (input)="updateItem(item, 'cost', $event.target.value)" style="width: 100px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
 			</td>
 			<td style="padding: 0.5rem; text-align: center;">
+				@if (auth.canEdit()) {
 				<button (click)="removeItem(item)" style="padding: 0.25rem 1rem; border-radius: 1rem; background: #eee; color: #333; border: none; font-weight: 500; cursor: pointer;">Remove</button>
+				}
 			</td>
 		</tr>
 		<tr *ngIf="filteredItems.length === 0">

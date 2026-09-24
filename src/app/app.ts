@@ -1,17 +1,19 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ToastService } from './services/toast.service';
+import { AuthService } from './services/auth.service';
+import { Login } from './login/login';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Login],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
 export class App {
   protected readonly title = signal('ACMT');
   showNav = signal(false);
-  constructor(public toast: ToastService) {}
+  constructor(public toast: ToastService, public auth: AuthService) {}
   private navKeyHandler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       this.closeNav();

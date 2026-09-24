@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 import { GoogleDriveService } from '../../services/google-drive.service';
 import { ExcelExportImportService } from '../../services/excel-export-import.service';
 
@@ -27,6 +28,7 @@ export class List implements OnInit {
   isLoading = false;
 
   constructor(
+    public auth: AuthService,
     private toast: ToastService,
     private googleDriveService: GoogleDriveService,
     private excelService: ExcelExportImportService

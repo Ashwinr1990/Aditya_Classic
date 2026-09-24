@@ -19,7 +19,7 @@
 		<tr *ngFor="let type of utilityTypes">
 			<td style="padding: 0.75rem;">{{ type }}</td>
 			<td *ngFor="let month of months; let i = index" style="padding: 0.5rem; text-align: center;">
-				<input type="number" min="0" [value]="getAmount(type, i)" (input)="setAmount(type, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
+				<input type="number" min="0" [readOnly]="auth.readOnly()" [value]="getAmount(type, i)" (input)="setAmount(type, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
 			</td>
 		</tr>
 	</tbody>
@@ -44,6 +44,7 @@
 
 <!-- Miscellaneous Table -->
 <h3 style="margin-top: 3rem;">Miscellaneous Expenses</h3>
+@if (auth.canEdit()) {
 <form (ngSubmit)="addMisc()" #miscForm="ngForm" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
 	<div>
 		<label>Name<br>
@@ -62,6 +63,7 @@
 	</div>
 	<button type="submit" [disabled]="miscForm.invalid" style="padding: 0.5rem 1.5rem; border-radius: 2rem; background: #1976d2; color: #fff; border: none; font-weight: 500; cursor: pointer;">Add</button>
 </form>
+}
 
 <table style="width: 100%; max-width: 700px; border-collapse: collapse; background: #fff; box-shadow: 0 2px 8px #0001;">
 	<thead style="background: #1976d2; color: #fff;">
