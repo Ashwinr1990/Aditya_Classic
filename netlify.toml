@@ -2,6 +2,10 @@
   command = "npm run build"
   publish = "dist/ACMT/browser"
 
+[build.environment]
+  # Angular 20 needs Node ^20.19 || ^22.12
+  NODE_VERSION = "22"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
