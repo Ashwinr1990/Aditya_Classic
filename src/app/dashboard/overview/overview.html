@@ -325,7 +325,7 @@
 			Message <span class="mail-note">(optional)</span>
 			<textarea name="mailMessage" [(ngModel)]="mailMessage" rows="3" placeholder="Added to the email above the report summary"></textarea>
 		</label>
-		<p class="mail-note">Recipients are sent a blind copy (BCC), so they don't see each other's addresses.</p>
+		<p class="mail-note">All selected emails are in the To field, so recipients can see each other's addresses.</p>
 		<p class="modal-error" *ngIf="mailError">{{ mailError }}</p>
 		<div class="modal-actions">
 			<button type="button" class="selector-btn" (click)="closeMailDialog()" [disabled]="sendingMail">Cancel</button>

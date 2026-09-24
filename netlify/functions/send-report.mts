@@ -10,7 +10,7 @@ import { FILE_KEY, dataStore, roleFor, smtpPassword } from '../lib/auth.mts';
 //           from the app's Email setup (see mail-settings.mts).
 // SMTP_USER: optional; if set it must equal the admin email (Gmail can only send as the signed-in account).
 // Recipients must be emails saved in the app (people or admin), so this can't be used to email strangers.
-// Everyone is BCC'd, so residents don't see each other's addresses.
+// Only the selected emails receive it, all in the To field.
 
 const MAX_RECIPIENTS = 90; // Gmail caps recipients per message
 const MAX_PDF_BYTES = 4 * 1024 * 1024;
@@ -82,8 +82,8 @@ export default async (req: Request) => {
     await transporter.sendMail({
       from: { name: 'Aditya Classic Association', address: user },
       replyTo: user,
-      to: { name: 'Aditya Classic Association', address: user },
-      bcc: recipients,
+      // Addressed to the selected people only; the admin gets a copy only if selected.
+      to: recipients,
       subject: `Aditya Classic Association · Financial Report ${year}`,
       text: textBody(year, body),
       html: htmlBody(year, body),
