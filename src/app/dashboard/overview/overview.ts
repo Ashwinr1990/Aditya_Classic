@@ -14,7 +14,7 @@ import { ToastService } from '../../services/toast.service';
   styleUrl: './overview.scss',
 })
 export class Overview implements AfterViewInit {
-  showAll = false;
+  showAll = true;
   toggleShowAll() {
     this.showAll = !this.showAll;
     this.loadData();
