@@ -10,9 +10,10 @@ import { FILE_KEY, dataStore, roleFor, smtpPassword } from '../lib/auth.mts';
 //           from the app's Email setup (see mail-settings.mts).
 // SMTP_USER: optional; if set it must equal the admin email (Gmail can only send as the signed-in account).
 // Recipients must be emails saved in the app (people or admin), so this can't be used to email strangers.
-// Only the selected emails receive it, all in the To field.
+// Each recipient gets their own message addressed only to them and greeted by name: one message with many
+// addresses in To looks like bulk mail and lands in spam (and exposes everyone's address).
 
-const MAX_RECIPIENTS = 90; // Gmail caps recipients per message
+const MAX_RECIPIENTS = 10; // per request, to stay within the function time limit; the app sends in batches
 const MAX_PDF_BYTES = 4 * 1024 * 1024;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,7 +31,7 @@ export default async (req: Request) => {
   if (roleFor(req) !== 'admin') return json({ error: 'Only the admin can send emails' }, 403);
 
   // Mail always goes from the admin email saved in the app.
-  const { allowed, adminEmail } = await savedEmails();
+  const { allowed, names, adminEmail } = await savedEmails();
   if (!adminEmail) {
     return json({ error: 'No admin email is saved. Log out and in again as admin to add it, then try again.' }, 400);
   }
@@ -76,58 +77,71 @@ export default async (req: Request) => {
   }
 
   const fileName = /^[\w.-]{1,80}\.pdf$/.test(body.fileName ?? '') ? body.fileName! : `ACMT-Report-${year}.pdf`;
-  const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user, pass } });
+  // One SMTP connection reused for every message.
+  const transporter = nodemailer.createTransport({ service: 'gmail', pool: true, maxConnections: 1, auth: { user, pass } });
 
+  let sent = 0;
   try {
-    await transporter.sendMail({
-      from: { name: 'Aditya Classic Association', address: user },
-      replyTo: user,
-      // Addressed to the selected people only; the admin gets a copy only if selected.
-      to: recipients,
-      subject: `Aditya Classic Association · Financial Report ${year}`,
-      text: textBody(year, body),
-      html: htmlBody(year, body),
-      attachments: [{ filename: fileName, content: pdf, contentType: 'application/pdf' }],
-    });
+    for (const to of recipients) {
+      const name = names.get(to);
+      await transporter.sendMail({
+        from: { name: 'Aditya Classic Association', address: user },
+        replyTo: user,
+        to: name ? { name, address: to } : to,
+        subject: `Aditya Classic Association - Financial Report ${year}`,
+        text: textBody(year, body, name),
+        html: htmlBody(year, body, name),
+        attachments: [{ filename: fileName, content: pdf, contentType: 'application/pdf' }],
+      });
+      sent++;
+    }
   } catch (e: any) {
     console.error('sendMail failed', e);
     const auth = e?.code === 'EAUTH' || e?.responseCode === 535;
     return json({
+      sent,
       setupNeeded: auth,
       error: auth
         ? `Gmail rejected the login for ${user}. Update the App Password in "Email setup" above.`
         : 'Sending failed. Please try again later.',
     }, 502);
+  } finally {
+    transporter.close();
   }
 
-  return json({ sent: recipients.length, from: user });
+  return json({ sent, from: user });
 };
 
-async function savedEmails(): Promise<{ allowed: Set<string>; adminEmail: string | null }> {
+async function savedEmails(): Promise<{ allowed: Set<string>; names: Map<string, string>; adminEmail: string | null }> {
   const data = await dataStore().get(FILE_KEY, { type: 'arrayBuffer' });
   const allowed = new Set<string>();
+  const names = new Map<string, string>();
   let adminEmail: string | null = null;
-  if (!data) return { allowed, adminEmail };
+  if (!data) return { allowed, names, adminEmail };
   const wb = XLSX.read(new Uint8Array(data), { type: 'array' });
   const rows = (sheet: string) =>
     wb.Sheets[sheet] ? XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[sheet]) : [];
   for (const row of rows('people')) {
-    if (row['email']) allowed.add(String(row['email']).trim().toLowerCase());
+    if (!row['email']) continue;
+    const email = String(row['email']).trim().toLowerCase();
+    allowed.add(email);
+    const name = String(row['name'] ?? '').trim();
+    if (name && !names.has(email)) names.set(email, name);
   }
   const admin = rows('adminProfile')[0]?.['email'];
   if (admin) {
     adminEmail = String(admin).trim();
     allowed.add(adminEmail.toLowerCase());
   }
-  return { allowed, adminEmail };
+  return { allowed, names, adminEmail };
 }
 
 function money(v: number): string {
   return `${v < 0 ? '-' : ''}Rs. ${new Intl.NumberFormat('en-IN').format(Math.abs(v))}`;
 }
 
-function textBody(year: number, body: Body): string {
-  const lines = ['Dear Resident,', '', `Please find attached the financial report of Aditya Classic Association for ${year}.`];
+function textBody(year: number, body: Body, name?: string): string {
+  const lines = [`Dear ${name || 'Resident'},`, '', `Please find attached the financial report of Aditya Classic Association for ${year}.`];
   if (body.message?.trim()) lines.push('', body.message.trim());
   if (body.summary) {
     lines.push('', `Collected: ${money(body.summary.collected)}`, `Used: ${money(body.summary.used)}`,
@@ -137,7 +151,7 @@ function textBody(year: number, body: Body): string {
   return lines.join('\n');
 }
 
-function htmlBody(year: number, body: Body): string {
+function htmlBody(year: number, body: Body, name?: string): string {
   const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
   const s = body.summary;
   const card = (label: string, value: number, color: string) =>
@@ -151,7 +165,7 @@ function htmlBody(year: number, body: Body): string {
       <div style="font-size:13px;opacity:.9">Financial Report · ${year}</div>
     </div>
     <div style="padding:18px;border:1px solid #d0d7e2;border-top:none;border-radius:0 0 8px 8px">
-      <p>Dear Resident,</p>
+      <p>Dear ${esc(name || 'Resident')},</p>
       <p>Please find attached the financial report of Aditya Classic Association for <b>${year}</b>.</p>
       ${body.message?.trim() ? `<p style="white-space:pre-line">${esc(body.message.trim())}</p>` : ''}
       ${s ? `<table cellspacing="8" style="width:100%"><tr>

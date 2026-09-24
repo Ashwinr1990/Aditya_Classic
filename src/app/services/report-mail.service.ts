@@ -7,6 +7,7 @@ export type MailRecipient = { name: string; detail: string; email: string };
 
 const SEND_URL = '/.netlify/functions/send-report';
 const SETTINGS_URL = '/.netlify/functions/mail-settings';
+const BATCH_SIZE = 10; // must not exceed MAX_RECIPIENTS in send-report.mts
 
 /** Emails the yearly PDF report to selected people through the send-report Netlify function. */
 @Injectable({ providedIn: 'root' })
@@ -44,31 +45,41 @@ export class ReportMailService {
     await this.cloudSync.save();
     const { base64, fileName, report } = await this.pdf.buildForEmail(year);
 
-    let res: Response;
-    try {
-      res = await fetch(SEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-acmt-password': this.auth.password },
-        body: JSON.stringify({
-          year,
-          recipients: emails,
-          pdfBase64: base64,
-          fileName,
-          message,
-          summary: { collected: report.collected, used: report.used, savings: report.savings },
-        }),
-      });
-    } catch {
-      throw new Error('Could not reach the server. Check your internet connection.');
+    // Each person gets a separate email; the server sends a limited number per request.
+    let sent = 0;
+    let from = '';
+    for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+      const sentBefore = sent ? `Sent to ${sent} of ${emails.length} people, then stopped. ` : '';
+      let res: Response;
+      try {
+        res = await fetch(SEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-acmt-password': this.auth.password },
+          body: JSON.stringify({
+            year,
+            recipients: emails.slice(i, i + BATCH_SIZE),
+            pdfBase64: base64,
+            fileName,
+            message,
+            summary: { collected: report.collected, used: report.used, savings: report.savings },
+          }),
+        });
+      } catch {
+        throw new Error(sentBefore + 'Could not reach the server. Check your internet connection.');
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        const partial = sent + (data?.sent ?? 0);
+        throw new MailError(
+          (partial ? `Sent to ${partial} of ${emails.length} people, then stopped. ` : '') +
+            (data?.error ?? `Sending failed (HTTP ${res.status}). Email only works on the deployed site.`),
+          !!data?.setupNeeded,
+        );
+      }
+      sent += data.sent;
+      from = data.from;
     }
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data) {
-      throw new MailError(
-        data?.error ?? `Sending failed (HTTP ${res.status}). Email only works on the deployed site.`,
-        !!data?.setupNeeded,
-      );
-    }
-    return data;
+    return { sent, from };
   }
 
   /** Whether a Gmail App Password is configured (the password itself is never returned). */
