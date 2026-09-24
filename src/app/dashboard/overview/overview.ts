@@ -8,7 +8,7 @@ import { CloudSyncService } from '../../services/cloud-sync.service';
 import { AuthService } from '../../services/auth.service';
 import { ExcelReportService } from '../../services/excel-report.service';
 import { PdfReportService } from '../../services/pdf-report.service';
-import { MailRecipient, ReportMailService } from '../../services/report-mail.service';
+import { MailError, MailRecipient, MailSettings, ReportMailService } from '../../services/report-mail.service';
 
 @Component({
   selector: 'app-overview',
@@ -126,6 +126,13 @@ export class Overview implements AfterViewInit {
   mailMessage = '';
   mailError = '';
   sendingMail = false;
+  // Email setup (Gmail App Password) — status comes from the server; the password is never sent back
+  mailSettings: MailSettings | null = null;
+  mailSettingsLoading = false;
+  showMailSetup = false;
+  appPassword = '';
+  savingAppPassword = false;
+  mailSetupError = '';
 
   openMailDialog() {
     const { list, withoutEmail } = this.reportMail.recipients();
@@ -134,7 +141,44 @@ export class Overview implements AfterViewInit {
     this.mailSelected = new Set();
     this.mailMessage = '';
     this.mailError = '';
+    this.appPassword = '';
+    this.mailSetupError = '';
+    this.showMailSetup = false;
     this.showMailDialog = true;
+    this.loadMailSettings();
+  }
+
+  private async loadMailSettings() {
+    this.mailSettingsLoading = true;
+    this.cdr.detectChanges();
+    try {
+      this.mailSettings = await this.reportMail.settings();
+      this.showMailSetup = !this.mailSettings.configured;
+    } catch {
+      this.mailSettings = null; // e.g. `npm start`: no server; sending will explain
+    } finally {
+      this.mailSettingsLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async saveAppPassword() {
+    if (!this.appPassword.trim() || this.savingAppPassword) return;
+    this.savingAppPassword = true;
+    this.mailSetupError = '';
+    this.cdr.detectChanges();
+    try {
+      this.mailSettings = await this.reportMail.savePassword(this.appPassword);
+      this.appPassword = '';
+      this.showMailSetup = false;
+      this.mailError = '';
+      this.toast.showToast('Gmail password checked and saved', 4000, 'success');
+    } catch (e: any) {
+      this.mailSetupError = e?.message ?? 'Could not save the password.';
+    } finally {
+      this.savingAppPassword = false;
+      this.cdr.detectChanges();
+    }
   }
 
   closeMailDialog() {
@@ -166,6 +210,7 @@ export class Overview implements AfterViewInit {
       this.toast.showToast(`Report emailed to ${sent} ${sent === 1 ? 'person' : 'people'} from ${from}`, 5000, 'success');
     } catch (e: any) {
       this.mailError = e?.message ?? 'Sending failed.';
+      if (e instanceof MailError && e.setupNeeded) this.showMailSetup = true;
     } finally {
       this.sendingMail = false;
       this.cdr.detectChanges();
