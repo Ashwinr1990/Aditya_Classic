@@ -103,7 +103,26 @@ export class ExcelReportService {
           names: this.namesWithDefaults(this.read<{ name: string }[]>('guards', []).map(g => g.name), 'salaryData', year),
           markUnpaid: false,
         },
+        this.commonGrid(year),
       ],
+    };
+  }
+
+  // Common maintenance items for the year, one row per description (items store months 0-11).
+  private commonGrid(year: number): YearGrid {
+    const data: Record<string, Record<string, number>> = {};
+    for (const item of this.read<any[]>('commonItems', [])) {
+      if (Number(item?.year) !== year) continue;
+      const month = Number(item?.month);
+      if (!(month >= 0 && month < 12)) continue;
+      const name = String(item?.desc ?? '').trim() || 'Other';
+      const mm = String(month + 1).padStart(2, '0');
+      data[name] ??= {};
+      data[name][mm] = (data[name][mm] || 0) + (Number(item?.cost) || 0);
+    }
+    return {
+      sheetName: `Common Maint. ${year}`, title: `Common Maintenance · ${year}`, label: 'Item',
+      data, names: Object.keys(data).map(name => ({ name })), markUnpaid: false,
     };
   }
 
@@ -327,7 +346,7 @@ export class ExcelReportService {
         .reduce((s, item) => s + (item.cost || 0), 0);
       const commonTotal = common
         .filter(item => Number(item?.month) === m && Number(item?.year) === year)
-        .reduce((s, item) => s + (item.cost || 0), 0);
+        .reduce((s, item) => s + (Number(item.cost) || 0), 0);
       return {
         month,
         maintenance: sumMonth(maintenance, mm),
