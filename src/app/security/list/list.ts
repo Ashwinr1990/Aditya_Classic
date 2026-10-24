@@ -93,9 +93,27 @@ export class List implements OnInit {
     return Object.values(this.salaryData[year][guard]).reduce((sum, amt) => sum + (amt || 0), 0);
   }
 
-  editGuardName(index: number, event: any) {
-    this.guards[index].name = event.target.value;
+  // Salaries are stored by guard name, so a rename moves them to the new name.
+  renameGuard(index: number, input: HTMLInputElement) {
+    const oldName = this.guards[index].name ?? '';
+    const newName = input.value.trim();
+    if (newName === oldName) return;
+    if (newName && this.guards.some((g, i) => i !== index && g.name === newName)) {
+      this.toast.showToast(`A guard named "${newName}" already exists`, 5000, 'error');
+      input.value = oldName;
+      return;
+    }
+    // Another guard with the old name (e.g. two blank rows) keeps its copy of the salaries.
+    const shared = this.guards.some((g, i) => i !== index && (g.name ?? '') === oldName);
+    for (const year of Object.keys(this.salaryData)) {
+      const months = this.salaryData[year][oldName];
+      if (!months) continue;
+      this.salaryData[year][newName] = shared ? { ...months } : months;
+      if (!shared) delete this.salaryData[year][oldName];
+    }
+    this.guards[index].name = newName;
     this.saveGuards();
+    this.saveSalaries();
   }
 
   addGuard() {
@@ -104,7 +122,16 @@ export class List implements OnInit {
   }
 
   removeGuard(index: number) {
+    const name = this.guards[index].name ?? '';
+    const ok = window.confirm(
+      `Remove ${name || 'this guard'}?\n\nTheir salary for all years will also be deleted. This cannot be undone.`
+    );
+    if (!ok) return;
     this.guards.splice(index, 1);
+    if (!this.guards.some(g => (g.name ?? '') === name)) {
+      for (const year of Object.keys(this.salaryData)) delete this.salaryData[year][name];
+      this.saveSalaries();
+    }
     this.saveGuards();
   }
 

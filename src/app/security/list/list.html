@@ -116,7 +116,7 @@
 	<tbody>
 		<tr *ngFor="let guard of guards; let idx = index">
 			<td style="padding: 0.75rem; min-width: 160px;">
-				<input type="text" [readOnly]="auth.readOnly()" [(ngModel)]="guards[idx].name" (input)="editGuardName(idx, $event)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+				<input type="text" [readOnly]="auth.readOnly()" [value]="guard.name ?? ''" (change)="renameGuard(idx, $event.target)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
 			</td>
 			<td *ngFor="let month of months; let i = index" style="padding: 0.5rem; text-align: center;">
 				<input type="number" min="0" [readOnly]="auth.readOnly()" [value]="getAmount(guard.name, i)" (input)="setAmount(guard.name, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
