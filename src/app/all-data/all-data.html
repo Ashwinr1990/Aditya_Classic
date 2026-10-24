@@ -9,11 +9,23 @@
 		}
 	</div>
 	<div class="toolbar-row">
-		<input type="search" placeholder="Search this table" aria-label="Search this table"
-			[ngModel]="search()" (ngModelChange)="search.set($event)">
+		<select class="search-column" aria-label="Column to search in"
+			[ngModel]="searchColumn()" (ngModelChange)="searchColumn.set($event)">
+			<option value="">All columns</option>
+			@for (c of columns(); track c) { <option [value]="c">{{ c }}</option> }
+		</select>
+		<input type="search" [placeholder]="searchColumn() ? 'Search in ' + searchColumn() : 'Search this table'"
+			aria-label="Search this table" [ngModel]="search()" (ngModelChange)="search.set($event)">
+		@if (search().trim()) { <span class="match-count">{{ visible().length }} of {{ rows().length }} rows</span> }
 		<button type="button" class="reload" (click)="reloadFromCloud()" [disabled]="reloading()">
 			{{ reloading() ? 'Loading…' : '⟳ Reload from cloud' }}
 		</button>
+		@if (auth.canEdit() && selected().size) {
+		<button type="button" class="delete-selected" (click)="deleteSelected()">
+			Delete selected ({{ selected().size }})
+		</button>
+		<button type="button" class="clear-selection" (click)="clearSelection()">Clear selection</button>
+		}
 	</div>
 	<p class="hint">
 		Changes here are saved to the cloud automatically.
@@ -25,6 +37,13 @@
 	<table class="acmt-table">
 		<thead>
 			<tr>
+				@if (auth.canEdit()) {
+				<th class="select">
+					<input type="checkbox" aria-label="Select all rows shown" [checked]="allVisibleSelected()"
+						[indeterminate]="selected().size > 0 && !allVisibleSelected()"
+						[disabled]="!visible().length" (change)="toggleAllVisible()">
+				</th>
+				}
 				<th class="num">#</th>
 				@for (c of columns(); track c) { <th>{{ c }}</th> }
 				@if (auth.canEdit()) { <th class="actions">Actions</th> }
@@ -32,7 +51,13 @@
 		</thead>
 		<tbody>
 			@for (item of visible(); track item.index) {
-			<tr [class.editing]="editIndex() === item.index">
+			<tr [class.editing]="editIndex() === item.index" [class.selected]="selected().has(item.index)">
+				@if (auth.canEdit()) {
+				<td class="select">
+					<input type="checkbox" [attr.aria-label]="'Select row ' + (item.index + 1)"
+						[checked]="selected().has(item.index)" (change)="toggleRow(item.index)">
+				</td>
+				}
 				<td class="num">{{ item.index + 1 }}</td>
 				@if (editIndex() === item.index) {
 				@for (c of columns(); track c) {
@@ -60,7 +85,7 @@
 			</tr>
 			} @empty {
 			<tr>
-				<td [attr.colspan]="columns().length + 2" class="none">
+				<td [attr.colspan]="columns().length + 3" class="none">
 					{{ rows().length ? 'No rows match the search.' : 'No data stored for ' + (labels[key()] || key()) + '.' }}
 				</td>
 			</tr>

@@ -49,6 +49,19 @@
 		border-radius: 0.5rem;
 		border: 1px solid #ccc;
 	}
+
+	.search-column {
+		padding: 0.45rem 0.7rem;
+		border-radius: 0.5rem;
+		border: 1px solid #ccc;
+		background: #fff;
+	}
+
+	.match-count {
+		align-self: center;
+		font-size: 0.85rem;
+		color: #555;
+	}
 }
 
 .reload {
@@ -64,6 +77,25 @@
 		opacity: 0.6;
 		cursor: default;
 	}
+}
+
+.delete-selected,
+.clear-selection {
+	padding: 0.45rem 1rem;
+	border-radius: 0.5rem;
+	border: none;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.delete-selected {
+	background: #c62828;
+	color: #fff;
+}
+
+.clear-selection {
+	background: #eee;
+	color: #333;
 }
 
 .hint {
@@ -87,6 +119,23 @@
 	.num {
 		width: 3rem;
 		color: #888;
+	}
+
+	.select {
+		width: 2.5rem;
+		text-align: center;
+
+		input {
+			width: 1.1rem;
+			height: 1.1rem;
+			min-width: 0;
+			padding: 0;
+			cursor: pointer;
+		}
+	}
+
+	tr.selected td {
+		background: #ffebee;
 	}
 
 	thead .num {

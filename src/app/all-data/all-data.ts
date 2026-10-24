@@ -40,9 +40,13 @@ export class AllData {
   readonly rows = signal<Row[]>([]);
   readonly counts = signal<Record<string, number>>({});
   readonly search = signal('');
+  // Column the search looks in; '' searches every column
+  readonly searchColumn = signal('');
   readonly editIndex = signal<number | null>(null);
   readonly error = signal('');
   readonly reloading = signal(false);
+  // Indexes in `rows` ticked for deleting together
+  readonly selected = signal<Set<number>>(new Set());
   // Values of the row being edited, as typed
   draft: Record<string, string> = {};
 
@@ -55,12 +59,20 @@ export class AllData {
     return cols;
   });
 
-  /** Rows matching the search, with their index in `rows`. */
+  /** Rows matching the search in the chosen column (or any column), with their index in `rows`. */
   readonly visible = computed(() => {
     const q = this.search().trim().toLowerCase();
+    const col = this.searchColumn();
+    const matches = (v: any) => String(v ?? '').toLowerCase().includes(q);
     return this.rows()
       .map((row, index) => ({ row, index }))
-      .filter(({ row }) => !q || Object.values(row).some(v => String(v ?? '').toLowerCase().includes(q)));
+      .filter(({ row }) => !q || (col ? matches(row[col]) : Object.values(row).some(matches)));
+  });
+
+  /** True when every row matching the search is ticked. */
+  readonly allVisibleSelected = computed(() => {
+    const visible = this.visible();
+    return visible.length > 0 && visible.every(({ index }) => this.selected().has(index));
   });
 
   constructor(public auth: AuthService, private cloudSync: CloudSyncService, private toast: ToastService) {
@@ -70,6 +82,7 @@ export class AllData {
   select(key: string) {
     this.key.set(key);
     this.search.set('');
+    this.searchColumn.set('');
     this.load();
   }
 
@@ -139,6 +152,38 @@ export class AllData {
     this.write(rows, 'Row deleted');
   }
 
+  toggleRow(index: number) {
+    const selected = new Set(this.selected());
+    if (!selected.delete(index)) selected.add(index);
+    this.selected.set(selected);
+  }
+
+  /** Ticks or unticks every row matching the search, leaving hidden rows as they are. */
+  toggleAllVisible() {
+    const selected = new Set(this.selected());
+    const tick = !this.allVisibleSelected();
+    for (const { index } of this.visible()) {
+      if (tick) selected.add(index);
+      else selected.delete(index);
+    }
+    this.selected.set(selected);
+  }
+
+  clearSelection() {
+    this.selected.set(new Set());
+  }
+
+  deleteSelected() {
+    const count = this.selected().size;
+    if (!count) return;
+    const label = this.labels[this.key()] || this.key();
+    if (!window.confirm(`Delete ${count} ${label} row${count === 1 ? '' : 's'}?
+
+This cannot be undone.`)) return;
+    const rows = this.rows().filter((_, i) => !this.selected().has(i));
+    this.write(rows, `${count} row${count === 1 ? '' : 's'} deleted`);
+  }
+
   private write(rows: Row[], message: string) {
     this.cloudSync.setSheetRows(this.key(), rows);
     if (this.key() === ADMIN_PROFILE_KEY) this.auth.loadAdminEmail();
@@ -148,6 +193,7 @@ export class AllData {
 
   private load() {
     this.editIndex.set(null);
+    this.clearSelection();
     this.rows.set(this.cloudSync.sheetRows(this.key()));
     this.counts.set(Object.fromEntries(DATA_KEYS.map(k => [k, this.cloudSync.sheetRows(k).length])));
   }
