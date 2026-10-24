@@ -17,7 +17,7 @@ export const DATA_KEYS = [
 
 // Nested { year: { name: { month: amount } } } keys, flattened to rows in Excel.
 // The value is the column name used for the middle level.
-const NESTED_KEYS: Record<string, string> = {
+export const NESTED_KEYS: Record<string, string> = {
   maintenanceData: 'person',
   salaryData: 'guard',
   utilityData: 'type',
@@ -157,31 +157,58 @@ export class CloudSyncService {
       workbook.SheetNames.forEach(sheetName => {
         if (!DATA_KEYS.includes(sheetName)) return;
         const json: any[] = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
-        // Drop empty cells, so e.g. a person without an email has no email field (as when entered in the app)
-        let value: any = json.map(row =>
-          Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null && v !== ''))
-        );
-        if (NESTED_KEYS[sheetName]) {
-          // accept the older 'person'/'category' column names too
-          const col = NESTED_KEYS[sheetName];
-          const nested: any = {};
-          json.forEach(row => {
-            const name = row[col] ?? row.person ?? row.category;
-            if (!row.year || !name || !row.month) return;
-            const month = String(row.month).padStart(2, '0');
-            nested[row.year] ??= {};
-            nested[row.year][name] ??= {};
-            nested[row.year][name][month] = row.amount || 0;
-          });
-          value = nested;
-        }
-        localStorage.setItem(sheetName, JSON.stringify(value));
+        localStorage.setItem(sheetName, JSON.stringify(this.rowsToValue(sheetName, json)));
         imported.push(`${sheetName}: ${json.length} rows`);
       });
     } finally {
       this.applying = false;
     }
     return imported;
+  }
+
+  /** Replaces one data key with these sheet rows (the reverse of sheetRows). Auto-saved like any other edit. */
+  setSheetRows(key: string, rows: any[]) {
+    localStorage.setItem(key, JSON.stringify(this.rowsToValue(key, rows)));
+  }
+
+  // Sheet rows -> the value kept in localStorage.
+  private rowsToValue(key: string, rows: any[]): any {
+    const col = NESTED_KEYS[key];
+    if (!col) {
+      // Drop empty cells, so e.g. a person without an email has no email field (as when entered in the app)
+      return rows.map(row =>
+        Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null && v !== undefined && v !== ''))
+      );
+    }
+    const nested: any = {};
+    rows.forEach(row => {
+      // accept the older 'person'/'category' column names too
+      const name = row[col] ?? row.person ?? row.category;
+      if (!row.year || !name || !row.month) return;
+      const month = String(row.month).padStart(2, '0');
+      nested[row.year] ??= {};
+      nested[row.year][name] ??= {};
+      nested[row.year][name][month] = row.amount || 0;
+    });
+    return nested;
+  }
+
+  /**
+   * Sends any pending change, then reloads this device's data from the cloud.
+   * Returns false if the cloud can't be reached (the data on this device is kept).
+   */
+  async reload(): Promise<boolean> {
+    if (!this.enabled) return false;
+    if (this.saveTimer) await this.save();
+    try {
+      const res = await this.request('GET');
+      if (!res.ok) return false;
+      this.applyWorkbook(await res.arrayBuffer(), false);
+      this.auth.loadAdminEmail();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Saves the current data to the cloud now. */

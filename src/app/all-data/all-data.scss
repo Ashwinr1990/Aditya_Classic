@@ -1,0 +1,158 @@
+.toolbar {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.sheet-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+
+	button {
+		padding: 0.4rem 0.9rem;
+		border-radius: 2rem;
+		border: 1.5px solid #1976d2;
+		background: #fff;
+		color: #1976d2;
+		font-weight: 500;
+		cursor: pointer;
+
+		&.active {
+			background: #1976d2;
+			color: #fff;
+		}
+	}
+
+	.count {
+		display: inline-block;
+		min-width: 1.4rem;
+		margin-left: 0.25rem;
+		padding: 0 0.35rem;
+		border-radius: 1rem;
+		background: #0001;
+		font-size: 0.8rem;
+	}
+}
+
+.toolbar-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+
+	input {
+		flex: 1;
+		min-width: 200px;
+		padding: 0.45rem 0.7rem;
+		border-radius: 0.5rem;
+		border: 1px solid #ccc;
+	}
+}
+
+.reload {
+	padding: 0.45rem 1rem;
+	border-radius: 0.5rem;
+	border: none;
+	background: #388e3c;
+	color: #fff;
+	font-weight: 500;
+	cursor: pointer;
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+}
+
+.hint {
+	margin: 0;
+	font-size: 0.85rem;
+	color: #555;
+}
+
+.table-scroll {
+	overflow-x: auto;
+}
+
+.acmt-table {
+	min-width: 100%;
+
+	th,
+	td {
+		white-space: nowrap;
+	}
+
+	.num {
+		width: 3rem;
+		color: #888;
+	}
+
+	thead .num {
+		color: inherit;
+	}
+
+	.actions {
+		text-align: center;
+		width: 1%;
+	}
+
+	td input {
+		width: 100%;
+		min-width: 6rem;
+		padding: 0.25rem 0.4rem;
+		border-radius: 0.4rem;
+		border: 1px solid #1976d2;
+	}
+
+	tr.editing td {
+		background: #e3f2fd;
+	}
+
+	.empty {
+		color: #aaa;
+	}
+
+	.none {
+		padding: 1rem;
+		text-align: center;
+		color: #888;
+	}
+
+	.error {
+		margin-top: 0.35rem;
+		color: #c62828;
+		font-size: 0.85rem;
+		white-space: normal;
+	}
+
+	.actions button {
+		padding: 0.25rem 0.9rem;
+		margin: 0 0.15rem;
+		border-radius: 1rem;
+		border: none;
+		color: #fff;
+		font-weight: 500;
+		cursor: pointer;
+
+		&:disabled {
+			opacity: 0.4;
+			cursor: default;
+		}
+	}
+
+	.edit,
+	.save {
+		background: #1976d2;
+	}
+
+	.delete {
+		background: #c62828;
+	}
+
+	.cancel {
+		background: #eee;
+		color: #333 !important;
+	}
+}

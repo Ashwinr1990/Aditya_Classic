@@ -1,0 +1,70 @@
+<h2>All Data</h2>
+
+<div class="selector-card acmt-card toolbar">
+	<div class="sheet-tabs" role="tablist">
+		@for (k of keys; track k) {
+		<button type="button" role="tab" [class.active]="k === key()" [attr.aria-selected]="k === key()" (click)="select(k)">
+			{{ labels[k] || k }} <span class="count">{{ counts()[k] }}</span>
+		</button>
+		}
+	</div>
+	<div class="toolbar-row">
+		<input type="search" placeholder="Search this table" aria-label="Search this table"
+			[ngModel]="search()" (ngModelChange)="search.set($event)">
+		<button type="button" class="reload" (click)="reloadFromCloud()" [disabled]="reloading()">
+			{{ reloading() ? 'Loading…' : '⟳ Reload from cloud' }}
+		</button>
+	</div>
+	<p class="hint">
+		Changes here are saved to the cloud automatically.
+		@if (notes[key()]) { <br><strong>Note:</strong> {{ notes[key()] }} }
+	</p>
+</div>
+
+<div class="table-scroll">
+	<table class="acmt-table">
+		<thead>
+			<tr>
+				<th class="num">#</th>
+				@for (c of columns(); track c) { <th>{{ c }}</th> }
+				@if (auth.canEdit()) { <th class="actions">Actions</th> }
+			</tr>
+		</thead>
+		<tbody>
+			@for (item of visible(); track item.index) {
+			<tr [class.editing]="editIndex() === item.index">
+				<td class="num">{{ item.index + 1 }}</td>
+				@if (editIndex() === item.index) {
+				@for (c of columns(); track c) {
+				<td><input [(ngModel)]="draft[c]" [attr.aria-label]="c" (keydown.enter)="saveEdit()" (keydown.escape)="cancelEdit()"></td>
+				}
+				<td class="actions">
+					<button type="button" class="save" (click)="saveEdit()">Save</button>
+					<button type="button" class="cancel" (click)="cancelEdit()">Cancel</button>
+					@if (error()) { <div class="error">{{ error() }}</div> }
+				</td>
+				} @else {
+				@for (c of columns(); track c) {
+				<td>
+					@if (item.row[c] == null || item.row[c] === '') { <span class="empty">—</span> }
+					@else { {{ item.row[c] }} }
+				</td>
+				}
+				@if (auth.canEdit()) {
+				<td class="actions">
+					<button type="button" class="edit" (click)="startEdit(item.index)" [disabled]="editIndex() !== null">Edit</button>
+					<button type="button" class="delete" (click)="deleteRow(item.index)">Delete</button>
+				</td>
+				}
+				}
+			</tr>
+			} @empty {
+			<tr>
+				<td [attr.colspan]="columns().length + 2" class="none">
+					{{ rows().length ? 'No rows match the search.' : 'No data stored for ' + (labels[key()] || key()) + '.' }}
+				</td>
+			</tr>
+			}
+		</tbody>
+	</table>
+</div>

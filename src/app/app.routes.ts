@@ -36,5 +36,10 @@ export const routes: Routes = [
 		path: 'common-maintenance',
 		canActivate: [adminOnly],
 		loadChildren: () => import('./common-maintenance/common-maintenance.module').then(m => m.CommonMaintenanceModule)
+	},
+	{
+		path: 'all-data',
+		canActivate: [adminOnly],
+		loadComponent: () => import('./all-data/all-data').then(m => m.AllData)
 	}
 ];
