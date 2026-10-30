@@ -1,8 +1,8 @@
 <!-- Move summary table below maintenance table -->
 
-<h2>Aditya Classic Maintenance</h2>
+<h2>{{ 'Aditya Classic Maintenance' | t }}</h2>
 <div class="selector-card acmt-card animate__animated animate__fadeInDown">
-	<label class="selector-label" for="year">Year:
+	<label class="selector-label" for="year">{{ 'Year:' | t }}
 		<select class="selector-select" id="year" [(ngModel)]="selectedYear" name="year">
 			<option *ngFor="let y of years()" [ngValue]="y">{{ y }}</option>
 		</select>
@@ -13,41 +13,41 @@
 <table class="acmt-table animate__animated animate__fadeIn" style="min-width: 900px;">
 	<thead style="background: #1976d2; color: #fff;">
 		<tr>
-			<th style="padding: 0.75rem; text-align: left;">Name</th>
+			<th style="padding: 0.75rem; text-align: left;">{{ 'Name' | t }}</th>
 			<!-- Full Date column removed -->
-			<th *ngFor="let month of months; let i = index" style="padding: 0.75rem; text-align: center;">{{ month }}</th>
+			<th *ngFor="let month of months; let i = index" style="padding: 0.75rem; text-align: center;">{{ month | t }}</th>
 		</tr>
 	</thead>
 	<tbody>
 		<tr *ngFor="let person of people">
-			<td style="padding: 0.75rem;">{{ person.name }}</td>
+			<td style="padding: 0.75rem;">{{ person.name | personName: person.nameKn }}</td>
 			<!-- Full Date cell removed -->
 			<td *ngFor="let month of months; let i = index" style="padding: 0.5rem; text-align: center;">
 				<input type="number" min="0" [readOnly]="auth.readOnly()" [value]="getAmount(person.name, i)" (input)="setAmount(person.name, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
 			</td>
 		</tr>
 		<tr *ngIf="people.length === 0">
-			<td colspan="14" style="padding: 1rem; text-align: center; color: #888;">No people found. Please add people first.</td>
+			<td colspan="14" style="padding: 1rem; text-align: center; color: #888;">{{ 'No people found. Please add people first.' | t }}</td>
 		</tr>
 	</tbody>
 </table>
 </div>
 <!-- Yearly Collection Summary table moved below -->
-<h3 style="margin-top: 3rem;">Yearly Collection Summary</h3>
+<h3 style="margin-top: 3rem;">{{ 'Yearly Collection Summary' | t }}</h3>
 <table class="acmt-table animate__animated animate__fadeIn" style="max-width: 500px; margin-bottom: 2rem; margin-top: 1.5rem;">
 	<thead style="background: #1976d2; color: #fff;">
 		<tr>
-			<th style="padding: 0.75rem; text-align: left;">Name</th>
-			<th style="padding: 0.75rem; text-align: right;">Total Collected (₹)</th>
+			<th style="padding: 0.75rem; text-align: left;">{{ 'Name' | t }}</th>
+			<th style="padding: 0.75rem; text-align: right;">{{ 'Total Collected (₹)' | t }}</th>
 		</tr>
 	</thead>
 	<tbody>
 		<tr *ngFor="let person of people">
-			<td style="padding: 0.75rem;">{{ person.name }}</td>
+			<td style="padding: 0.75rem;">{{ person.name | personName: person.nameKn }}</td>
 			<td style="padding: 0.75rem; text-align: right;">{{ getTotal(person.name) }}</td>
 		</tr>
 		<tr *ngIf="people.length === 0">
-			<td colspan="2" style="padding: 1rem; text-align: center; color: #888;">No people found.</td>
+			<td colspan="2" style="padding: 1rem; text-align: center; color: #888;">{{ 'No people found.' | t }}</td>
 		</tr>
 	</tbody>
 </table>

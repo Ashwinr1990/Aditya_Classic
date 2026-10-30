@@ -1,5 +1,5 @@
 // ...existing code...
-import { Component, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, AfterViewInit, ChangeDetectorRef, effect } from '@angular/core';
 import Chart from 'chart.js/auto';
 import { NgFor, NgIf, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,11 +9,15 @@ import { AuthService } from '../../services/auth.service';
 import { ExcelReportService } from '../../services/excel-report.service';
 import { PdfReportService } from '../../services/pdf-report.service';
 import { MailError, MailRecipient, MailSettings, ReportMailService } from '../../services/report-mail.service';
+import { LanguageService } from '../../i18n/language.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { PersonNamePipe } from '../../i18n/person-name.pipe';
+import { UserTextPipe } from '../../i18n/user-text.pipe';
 
 @Component({
   selector: 'app-overview',
   // include Common directives used in template
-  imports: [NgFor, NgIf, NgClass, FormsModule],
+  imports: [NgFor, NgIf, NgClass, FormsModule, TranslatePipe, PersonNamePipe, UserTextPipe],
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
 })
@@ -41,8 +45,8 @@ export class Overview implements AfterViewInit {
   ];
   monthWiseSummary: { month: string, maintenance: number, utilities: number, security: number, common: number }[] = [];
   utilityAllDetails: Array<{ month: string; type: string; details: string; amount: number }> = [];
-  securityAllDetails: Array<{ month: string; guard: string; amount: number }> = [];
-  commonAllDetails: Array<{ month: string; item: string; cost: number }> = [];
+  securityAllDetails: Array<{ month: string; guard: string; guardKn?: string; amount: number }> = [];
+  commonAllDetails: Array<{ month: string; item: string; itemKn?: string; cost: number }> = [];
   // Financial summary
   collectedAmount: number = 0; // amount collected under Maintenance
   usedAmount: number = 0; // sum of utilities, security, common maintenance
@@ -60,10 +64,10 @@ export class Overview implements AfterViewInit {
   async downloadFinancials() {
     try {
       await this.excelReport.exportFinancials(this.selectedYear);
-      this.toast.showToast('Financials downloaded', 5000, 'success');
+      this.toast.showToast(this.i18n.t('Financials downloaded'), 5000, 'success');
     } catch (e) {
       console.error('Failed to download financials', e);
-      this.toast.showToast('Download failed', 5000, 'error');
+      this.toast.showToast(this.i18n.t('Download failed'), 5000, 'error');
     }
   }
 
@@ -75,7 +79,14 @@ export class Overview implements AfterViewInit {
     private pdfReport: PdfReportService,
     private reportMail: ReportMailService,
     public auth: AuthService,
-  ) {}
+    public i18n: LanguageService,
+  ) {
+    // Redraw the chart in the new language
+    effect(() => {
+      this.i18n.lang();
+      if (this.chartInstance) this.renderChart();
+    });
+  }
 
   // Clear-all-data dialog
   showClearDialog = false;
@@ -97,11 +108,11 @@ export class Overview implements AfterViewInit {
   async confirmClearAll() {
     if (!this.clearPassword || this.clearing) return;
     const sure = window.confirm(
-      'Are you sure you want to delete ALL data and backups for everyone?\n\nThis cannot be undone.\n\nOK = Yes, delete everything\nCancel = No, keep my data'
+      this.i18n.t('Are you sure you want to delete ALL data and backups for everyone?\n\nThis cannot be undone.\n\nOK = Yes, delete everything\nCancel = No, keep my data')
     );
     if (!sure) {
       this.showClearDialog = false;
-      this.toast.showToast('Clear cancelled; no data was deleted', 4000, 'info');
+      this.toast.showToast(this.i18n.t('Clear cancelled; no data was deleted'), 4000, 'info');
       return;
     }
     this.clearing = true;
@@ -112,7 +123,7 @@ export class Overview implements AfterViewInit {
       // Reload so every page starts from empty data, like a new user.
       window.location.href = '/';
     } catch (e: any) {
-      this.clearError = e?.message ?? 'Delete failed.';
+      this.clearError = this.i18n.t(e?.message ?? 'Delete failed.');
       this.clearing = false;
       this.cdr.detectChanges();
     }
@@ -172,9 +183,9 @@ export class Overview implements AfterViewInit {
       this.appPassword = '';
       this.showMailSetup = false;
       this.mailError = '';
-      this.toast.showToast('Gmail password checked and saved', 4000, 'success');
+      this.toast.showToast(this.i18n.t('Gmail password checked and saved'), 4000, 'success');
     } catch (e: any) {
-      this.mailSetupError = e?.message ?? 'Could not save the password.';
+      this.mailSetupError = this.i18n.t(e?.message ?? 'Could not save the password.');
     } finally {
       this.savingAppPassword = false;
       this.cdr.detectChanges();
@@ -207,9 +218,13 @@ export class Overview implements AfterViewInit {
     try {
       const { sent, from } = await this.reportMail.send(this.selectedYear, [...this.mailSelected], this.mailMessage);
       this.showMailDialog = false;
-      this.toast.showToast(`Report emailed to ${sent} ${sent === 1 ? 'person' : 'people'} from ${from}`, 5000, 'success');
+      this.toast.showToast(
+        this.i18n.t(sent === 1 ? 'Report emailed to {count} person from {from}' : 'Report emailed to {count} people from {from}', { count: sent, from }),
+        5000,
+        'success',
+      );
     } catch (e: any) {
-      this.mailError = e?.message ?? 'Sending failed.';
+      this.mailError = this.i18n.t(e?.message ?? 'Sending failed.');
       if (e instanceof MailError && e.setupNeeded) this.showMailSetup = true;
     } finally {
       this.sendingMail = false;
@@ -241,7 +256,7 @@ export class Overview implements AfterViewInit {
           // Building the PDF can outlast the tap that allows sharing; keep the file so tapping again works.
           if (e?.name === 'NotAllowedError') {
             this.whatsappFile = { year, file, text };
-            this.toast.showToast('PDF is ready. Tap "Share on WhatsApp" again.', 5000, 'info');
+            this.toast.showToast(this.i18n.t('PDF is ready. Tap "Share on WhatsApp" again.'), 5000, 'info');
           } else if (e?.name !== 'AbortError') throw e;
         }
       } else {
@@ -252,11 +267,11 @@ export class Overview implements AfterViewInit {
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 10000);
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
-        this.toast.showToast('PDF downloaded. Choose the chat in WhatsApp, then attach the PDF.', 7000, 'info');
+        this.toast.showToast(this.i18n.t('PDF downloaded. Choose the chat in WhatsApp, then attach the PDF.'), 7000, 'info');
       }
     } catch (e) {
       console.error('WhatsApp share failed', e);
-      this.toast.showToast('Could not share the report', 5000, 'error');
+      this.toast.showToast(this.i18n.t('Could not share the report'), 5000, 'error');
     } finally {
       this.sharingWhatsapp = false;
       this.cdr.detectChanges();
@@ -265,14 +280,15 @@ export class Overview implements AfterViewInit {
 
   private whatsappText(year: number, report: { collected: number; used: number; savings: number }): string {
     const money = (v: number) => `${v < 0 ? '-' : ''}Rs. ${new Intl.NumberFormat('en-IN').format(Math.abs(v))}`;
+    const t = (text: string, params?: Record<string, unknown>) => this.i18n.t(text, params);
     return [
-      `*Aditya Classic Association - Financial Report ${year}*`,
+      t('*Aditya Classic Association - Financial Report {year}*', { year }),
       '',
-      `Collected: ${money(report.collected)}`,
-      `Used: ${money(report.used)}`,
-      `Savings: ${money(report.savings)}`,
+      t('Collected: {amount}', { amount: money(report.collected) }),
+      t('Used: {amount}', { amount: money(report.used) }),
+      t('Savings: {amount}', { amount: money(report.savings) }),
       '',
-      'The full report is attached.',
+      t('The full report is attached.'),
     ].join('\n');
   }
 
@@ -284,10 +300,10 @@ export class Overview implements AfterViewInit {
     this.cdr.detectChanges();
     try {
       await this.pdfReport.exportYear(this.selectedYear);
-      this.toast.showToast('PDF downloaded', 5000, 'success');
+      this.toast.showToast(this.i18n.t('PDF downloaded'), 5000, 'success');
     } catch (e) {
       console.error('PDF export failed', e);
-      this.toast.showToast('PDF export failed', 5000, 'error');
+      this.toast.showToast(this.i18n.t('PDF export failed'), 5000, 'error');
     } finally {
       this.exportingPdf = false;
       this.cdr.detectChanges();
@@ -298,10 +314,10 @@ export class Overview implements AfterViewInit {
   async exportToExcel() {
     try {
       await this.excelReport.exportAll(this.selectedYear);
-      this.toast.showToast('Excel exported', 5000, 'success');
+      this.toast.showToast(this.i18n.t('Excel exported'), 5000, 'success');
     } catch (e) {
       console.error('Export failed', e);
-      this.toast.showToast('Export failed', 5000, 'error');
+      this.toast.showToast(this.i18n.t('Export failed'), 5000, 'error');
     }
   }
 
@@ -318,15 +334,15 @@ export class Overview implements AfterViewInit {
         this.renderChart();
         this.cdr.detectChanges();
         // show global toast for import success
-        this.toast.showToast('Imported data', 5000, 'success');
+        this.toast.showToast(this.i18n.t('Imported data'), 5000, 'success');
       } catch (err) {
         console.error('Import failed', err);
-        this.toast.showToast('Import failed: invalid file or format', 5000, 'error');
+        this.toast.showToast(this.i18n.t('Import failed: invalid file or format'), 5000, 'error');
       }
     };
     reader.onerror = (ev) => {
       console.error('File read error', ev);
-      this.toast.showToast('Failed to read file', 5000, 'error');
+      this.toast.showToast(this.i18n.t('Failed to read file'), 5000, 'error');
     };
     reader.readAsArrayBuffer(file);
   }
@@ -369,6 +385,9 @@ export class Overview implements AfterViewInit {
     const salaryData = JSON.parse(localStorage.getItem('salaryData') || '{}');
     const commonItems = JSON.parse(localStorage.getItem('commonItems') || '[]');
     const miscItems = JSON.parse(localStorage.getItem('miscellaneous') || '[]');
+    const guardsKn = new Map<string, string | undefined>(
+      JSON.parse(localStorage.getItem('guards') || '[]').map((g: any) => [g.name, g.nameKn])
+    );
     this.utilityAllDetails = [];
     this.securityAllDetails = [];
     this.commonAllDetails = [];
@@ -434,6 +453,7 @@ export class Overview implements AfterViewInit {
               this.securityAllDetails.push({
                 month: this.months[m],
                 guard,
+                guardKn: guardsKn.get(guard),
                 amount,
               });
             }
@@ -451,6 +471,7 @@ export class Overview implements AfterViewInit {
             this.commonAllDetails.push({
               month: this.months[m],
               item: item.desc || '-',
+              itemKn: item.descKn,
               cost: item.cost || 0,
             });
           });
@@ -550,31 +571,31 @@ export class Overview implements AfterViewInit {
         this.chartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
-            labels: this.months,
+            labels: this.months.map(m => this.i18n.t(m)),
             datasets: [
               {
-                label: 'Maintenance',
+                label: this.i18n.t('Maintenance'),
                 data: this.monthWiseSummary.map(row => row.maintenance),
                 backgroundColor: 'rgba(75, 192, 192, 0.6)',
                 borderColor: 'rgba(75, 192, 192, 1)',
                 borderWidth: 1
               },
               {
-                label: 'Utilities',
+                label: this.i18n.t('Utilities'),
                 data: this.monthWiseSummary.map(row => row.utilities),
                 backgroundColor: 'rgba(255, 206, 86, 0.6)',
                 borderColor: 'rgba(255, 206, 86, 1)',
                 borderWidth: 1
               },
               {
-                label: 'Security',
+                label: this.i18n.t('Security'),
                 data: this.monthWiseSummary.map(row => row.security),
                 backgroundColor: 'rgba(255, 99, 132, 0.6)',
                 borderColor: 'rgba(255, 99, 132, 1)',
                 borderWidth: 1
               },
               {
-                label: 'Common Maintenance',
+                label: this.i18n.t('Common Maintenance'),
                 data: this.monthWiseSummary.map(row => row.common),
                 backgroundColor: 'rgba(153, 102, 255, 0.6)',
                 borderColor: 'rgba(153, 102, 255, 1)',
@@ -590,7 +611,7 @@ export class Overview implements AfterViewInit {
               },
               title: {
                 display: true,
-                text: `Month-wise Expenses for ${this.selectedYear}`
+                text: this.i18n.t('Month-wise Expenses for {year}', { year: this.selectedYear })
               }
             },
             scales: {
@@ -605,10 +626,10 @@ export class Overview implements AfterViewInit {
         this.chartInstance = new Chart(ctx, {
           type: 'bar',
           data: {
-            labels: this.summary.map(s => s.category),
+            labels: this.summary.map(s => this.i18n.t(s.category)),
             datasets: [
               {
-                label: `This Month`,
+                label: this.i18n.t('This Month'),
                 data: this.summary.map(s => s.thisMonth),
                 backgroundColor: [
                   'rgba(75, 192, 192, 0.2)',
@@ -634,7 +655,7 @@ export class Overview implements AfterViewInit {
               },
               title: {
                 display: true,
-                text: `Expenses for ${this.months[this.selectedMonth]} ${this.selectedYear}`
+                text: this.i18n.t('Expenses for {month} {year}', { month: this.i18n.t(this.months[this.selectedMonth]), year: this.selectedYear })
               }
             },
             scales: {

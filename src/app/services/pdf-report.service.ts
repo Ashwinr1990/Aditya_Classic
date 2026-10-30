@@ -1,8 +1,11 @@
 import { Injectable } from '@angular/core';
 import type { jsPDF } from 'jspdf';
 import { ExcelReportService, YearGrid, YearReport } from './excel-report.service';
+import { LanguageService } from '../i18n/language.service';
+import { hasKannada, kannadaCells, kannadaText } from './pdf-kannada';
 
-// Printable PDF of the yearly report: summary page, then maintenance, utilities and security tables.
+// Printable PDF of the yearly report: summary page, then maintenance, utilities and security tables,
+// in the app's current language (Kannada text is drawn as images, see pdf-kannada.ts).
 // jsPDF is loaded only when exporting. Its built-in fonts have no ₹ glyph, so amounts use "Rs.".
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -28,7 +31,7 @@ const MARGIN = 12;
 export class PdfReportService {
   private nf = new Intl.NumberFormat('en-IN');
 
-  constructor(private reports: ExcelReportService) {}
+  constructor(private reports: ExcelReportService, private i18n: LanguageService) {}
 
   async exportYear(year: number): Promise<void> {
     const { doc } = await this.build(year);
@@ -71,16 +74,17 @@ export class PdfReportService {
   // ---------- Pages ----------
 
   private summaryPage(doc: jsPDF, autoTable: AutoTable, r: YearReport) {
-    let y = this.banner(doc, `Financial Summary · ${r.year}`);
+    const t = (text: string) => this.i18n.t(text);
+    let y = this.banner(doc, this.i18n.t('Financial Summary · {year}', { year: r.year }));
 
     // Headline cards
     const width = doc.internal.pageSize.getWidth() - MARGIN * 2;
     const gap = 6;
     const cardW = (width - gap * 2) / 3;
     const cards: [string, number, RGB, RGB][] = [
-      ['COLLECTED', r.collected, C['green'], C['greenFill']],
-      ['USED', r.used, C['red'], C['redFill']],
-      ['SAVINGS', r.savings, r.savings >= 0 ? C['green'] : C['red'], r.savings >= 0 ? C['greenFill'] : C['redFill']],
+      [t('Collected').toUpperCase(), r.collected, C['green'], C['greenFill']],
+      [t('Used').toUpperCase(), r.used, C['red'], C['redFill']],
+      [t('Savings').toUpperCase(), r.savings, r.savings >= 0 ? C['green'] : C['red'], r.savings >= 0 ? C['greenFill'] : C['redFill']],
     ];
     cards.forEach(([label, value, color, fill], i) => {
       const x = MARGIN + i * (cardW + gap);
@@ -91,29 +95,29 @@ export class PdfReportService {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.setTextColor(...C['muted']);
-      doc.text(label, x + cardW / 2, y + 8, { align: 'center' });
+      this.text(doc, label, x + cardW / 2, y + 8, 'center');
       doc.setFontSize(18);
       doc.setTextColor(...color);
       doc.text(this.money(value), x + cardW / 2, y + 18, { align: 'center' });
     });
     y += 32;
 
-    y = this.sectionTitle(doc, 'Month-by-month breakdown', y);
+    y = this.sectionTitle(doc, t('Month-by-month breakdown'), y);
     const body = r.months.map(m => {
       const spent = m.utilities + m.security + m.common;
-      return [m.month, m.maintenance, m.utilities, m.security, m.common, spent, m.maintenance - spent];
+      return [t(m.month), m.maintenance, m.utilities, m.security, m.common, spent, m.maintenance - spent];
     });
     const sum = (i: number) => body.reduce((s, row) => s + (row[i] as number), 0);
-    const foot = ['Total', sum(1), sum(2), sum(3), sum(4), sum(5), sum(6)];
+    const foot = [t('Total'), sum(1), sum(2), sum(3), sum(4), sum(5), sum(6)];
 
     autoTable(doc, {
       ...this.tableStyle(),
       startY: y,
-      head: [['Month', 'Maintenance', 'Utilities', 'Security', 'Common Maint.', 'Total Spent', 'Balance']],
+      head: [['Month', 'Maintenance', 'Utilities', 'Security', 'Common Maint.', 'Total Spent', 'Balance'].map(t)],
       body: body.map(row => row.map((v, i) => (i === 0 ? v : this.money(v as number)))),
       foot: [foot.map((v, i) => (i === 0 ? v : this.money(v as number)))],
       columnStyles: this.moneyColumns(1, 6),
-      didParseCell: data => {
+      ...kannadaCells(data => {
         if (data.section === 'foot' && data.column.index === 0) data.cell.styles.halign = 'left';
         // Colour the balance column green/red
         if (data.column.index === 6 && data.section !== 'head') {
@@ -121,20 +125,22 @@ export class PdfReportService {
           data.cell.styles.textColor = (raw as number) >= 0 ? C['green'] : C['red'];
           data.cell.styles.fontStyle = 'bold';
         }
-      },
+      }),
     });
 
     const endY = (doc as any).lastAutoTable.finalY + 6;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(8);
     doc.setTextColor(...C['muted']);
-    doc.text(
-      'Collected = maintenance payments.  Used = utilities (incl. miscellaneous) + security salaries + common maintenance.  Savings = Collected - Used.',
+    this.text(
+      doc,
+      t('Collected = maintenance payments.  Used = utilities (incl. miscellaneous) + security salaries + common maintenance.  Savings = Collected - Used.'),
       MARGIN, endY,
     );
   }
 
   private gridPage(doc: jsPDF, autoTable: AutoTable, g: YearGrid) {
+    const t = (text: string) => this.i18n.t(text);
     const y = this.banner(doc, g.title);
     const hasSub = g.names.some(n => n.sub);
     const lead = hasSub ? 2 : 1;
@@ -143,7 +149,7 @@ export class PdfReportService {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(11);
       doc.setTextColor(...C['muted']);
-      doc.text('No entries for this year.', MARGIN, y + 6);
+      this.text(doc, t('No entries for this year.'), MARGIN, y + 6);
       return;
     }
 
@@ -152,11 +158,11 @@ export class PdfReportService {
     );
     const body = g.names.map((n, i) => {
       const total = values[i].reduce((s: number, v) => s + (v || 0), 0);
-      return [n.name, ...(hasSub ? [n.sub ?? ''] : []), ...values[i].map(v => (v ? this.money(v) : '')), this.money(total)];
+      return [n.shown, ...(hasSub ? [n.sub ?? ''] : []), ...values[i].map(v => (v ? this.money(v) : '')), this.money(total)];
     });
     const colTotals = MONTHS_SHORT.map((_, m) => values.reduce((s, row) => s + (row[m] || 0), 0));
     const foot = [
-      'Total', ...(hasSub ? [''] : []),
+      t('Total'), ...(hasSub ? [''] : []),
       ...colTotals.map(v => this.money(v)),
       this.money(colTotals.reduce((s, v) => s + v, 0)),
     ];
@@ -164,7 +170,7 @@ export class PdfReportService {
     autoTable(doc, {
       ...this.tableStyle(8),
       startY: y,
-      head: [[g.label, ...(hasSub ? ['House No.'] : []), ...MONTHS_SHORT, 'Total']],
+      head: [[g.label, ...(hasSub ? [t('House No.')] : []), ...MONTHS_SHORT.map(t), t('Total')]],
       body,
       foot: [foot],
       columnStyles: {
@@ -173,14 +179,14 @@ export class PdfReportService {
         ...this.moneyColumns(lead, lead + 12),
         [lead + 12]: { halign: 'right', fontStyle: 'bold' },
       },
-      didParseCell: data => {
+      ...kannadaCells(data => {
         if (data.section === 'foot' && data.column.index === 0) data.cell.styles.halign = 'left';
         if (!g.markUnpaid || data.section !== 'body') return;
         const m = data.column.index - lead;
         if (m >= 0 && m < 12 && !values[data.row.index][m]) {
           data.cell.styles.fillColor = C['redFill'];
         }
-      },
+      }),
     });
 
     if (g.markUnpaid) {
@@ -190,7 +196,7 @@ export class PdfReportService {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(8);
       doc.setTextColor(...C['muted']);
-      doc.text('Shaded cells: no payment recorded for that month', MARGIN + 11, endY);
+      this.text(doc, t('Shaded cells: no payment recorded for that month'), MARGIN + 11, endY);
     }
   }
 
@@ -206,11 +212,11 @@ export class PdfReportService {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
     doc.setTextColor(...C['white']);
-    doc.text('Aditya Classic Association', w / 2, 12, { align: 'center' });
+    this.text(doc, this.i18n.t('Aditya Classic Association'), w / 2, 12, 'center');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    const exported = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    doc.text(`${subtitle}   ·   Exported ${exported}`, w / 2, 24, { align: 'center' });
+    const exported = this.i18n.t('Exported {date}', { date: this.i18n.shortDate(new Date()) });
+    this.text(doc, `${subtitle}   ·   ${exported}`, w / 2, 24, 'center');
     return 35;
   }
 
@@ -218,7 +224,7 @@ export class PdfReportService {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(...C['primaryDark']);
-    doc.text(text, MARGIN, y);
+    this.text(doc, text, MARGIN, y);
     doc.setDrawColor(...C['primary']);
     doc.setLineWidth(0.6);
     doc.line(MARGIN, y + 2, doc.internal.pageSize.getWidth() - MARGIN, y + 2);
@@ -234,9 +240,15 @@ export class PdfReportService {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(...C['muted']);
-      doc.text('Aditya Classic Association', MARGIN, h - 6);
-      doc.text(`Page ${i} of ${pages}`, w - MARGIN, h - 6, { align: 'right' });
+      this.text(doc, this.i18n.t('Aditya Classic Association'), MARGIN, h - 6);
+      this.text(doc, this.i18n.t('Page {page} of {pages}', { page: i, pages }), w - MARGIN, h - 6, 'right');
     }
+  }
+
+  // doc.text, except that Kannada is drawn as an image
+  private text(doc: jsPDF, text: string, x: number, y: number, align: 'left' | 'center' | 'right' = 'left') {
+    if (hasKannada(text)) kannadaText(doc, text, x, y, align);
+    else doc.text(text, x, y, { align });
   }
 
   private tableStyle(fontSize = 9.5) {

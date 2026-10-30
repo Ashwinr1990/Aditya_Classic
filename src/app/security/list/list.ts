@@ -3,17 +3,21 @@ import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { LanguageService } from '../../i18n/language.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { PersonNamePipe } from '../../i18n/person-name.pipe';
 import { GoogleDriveService } from '../../services/google-drive.service';
 import { ExcelExportImportService } from '../../services/excel-export-import.service';
 
 @Component({
   selector: 'app-list',
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, FormsModule, TranslatePipe, PersonNamePipe],
   templateUrl: './list.html',
   styleUrl: './list.scss',
 })
 export class List implements OnInit {
-  guards: { name: string }[] = [];
+  // nameKn: the name as written in Kannada, when the automatic spelling is wrong
+  guards: { name: string; nameKn?: string }[] = [];
   selectedYear = new Date().getFullYear();
   months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -31,7 +35,8 @@ export class List implements OnInit {
     public auth: AuthService,
     private toast: ToastService,
     private googleDriveService: GoogleDriveService,
-    private excelService: ExcelExportImportService
+    private excelService: ExcelExportImportService,
+    private i18n: LanguageService,
   ) {
     this.loadGuards();
     this.loadSalaries();
@@ -54,7 +59,7 @@ export class List implements OnInit {
 
   saveGuards() {
     localStorage.setItem('guards', JSON.stringify(this.guards));
-    this.toast.showToast('Saved guards', 5000, 'success');
+    this.toast.showToast(this.i18n.t('Saved guards'), 5000, 'success');
   }
 
   loadSalaries() {
@@ -64,7 +69,7 @@ export class List implements OnInit {
 
   saveSalaries() {
     localStorage.setItem('salaryData', JSON.stringify(this.salaryData));
-    this.toast.showToast('Saved salaries', 5000, 'success');
+    this.toast.showToast(this.i18n.t('Saved salaries'), 5000, 'success');
   }
 
   getAmount(guard: string, monthIdx: number): number | null {
@@ -93,13 +98,20 @@ export class List implements OnInit {
     return Object.values(this.salaryData[year][guard]).reduce((sum, amt) => sum + (amt || 0), 0);
   }
 
+  // In Kannada mode the box shows the Kannada name, so a change there corrects the Kannada spelling.
+  // A guard without an English name yet takes what is typed as their name.
+  nameChanged(index: number, input: HTMLInputElement) {
+    if (this.i18n.lang() === 'kn' && /[A-Za-z]/.test(this.guards[index].name ?? '')) this.setKannadaName(index, input);
+    else this.renameGuard(index, input);
+  }
+
   // Salaries are stored by guard name, so a rename moves them to the new name.
   renameGuard(index: number, input: HTMLInputElement) {
     const oldName = this.guards[index].name ?? '';
     const newName = input.value.trim();
     if (newName === oldName) return;
     if (newName && this.guards.some((g, i) => i !== index && g.name === newName)) {
-      this.toast.showToast(`A guard named "${newName}" already exists`, 5000, 'error');
+      this.toast.showToast(this.i18n.t('A guard named "{name}" already exists', { name: newName }), 5000, 'error');
       input.value = oldName;
       return;
     }
@@ -112,8 +124,20 @@ export class List implements OnInit {
       if (!shared) delete this.salaryData[year][oldName];
     }
     this.guards[index].name = newName;
+    // A Kannada spelling saved for the old name doesn't fit the new one
+    delete this.guards[index].nameKn;
     this.saveGuards();
     this.saveSalaries();
+  }
+
+  // Empty goes back to the automatic spelling.
+  private setKannadaName(index: number, input: HTMLInputElement) {
+    const guard = this.guards[index];
+    const nameKn = input.value.trim();
+    if (nameKn) guard.nameKn = nameKn;
+    else delete guard.nameKn;
+    input.value = this.i18n.name(guard.name, guard.nameKn);
+    this.saveGuards();
   }
 
   addGuard() {
@@ -124,7 +148,8 @@ export class List implements OnInit {
   removeGuard(index: number) {
     const name = this.guards[index].name ?? '';
     const ok = window.confirm(
-      `Remove ${name || 'this guard'}?\n\nTheir salary for all years will also be deleted. This cannot be undone.`
+      (name ? this.i18n.t('Remove {name}?', { name }) : this.i18n.t('Remove this guard?')) + '\n\n' +
+        this.i18n.t('Their salary for all years will also be deleted. This cannot be undone.')
     );
     if (!ok) return;
     this.guards.splice(index, 1);
@@ -139,22 +164,22 @@ export class List implements OnInit {
   configureFileUrl() {
     try {
       if (!this.googleDriveFileUrl.trim()) {
-        this.toast.showToast('Please enter a Google Drive file URL', 5000, 'error');
+        this.toast.showToast(this.i18n.t('Please enter a Google Drive file URL'), 5000, 'error');
         return;
       }
 
       const fileId = this.googleDriveService.extractFileId(this.googleDriveFileUrl);
       if (!fileId) {
-        this.toast.showToast('Invalid Google Drive URL format. Expected: https://drive.google.com/file/d/FILE_ID/view', 5000, 'error');
+        this.toast.showToast(this.i18n.t('Invalid Google Drive URL format. Expected: https://drive.google.com/file/d/FILE_ID/view'), 5000, 'error');
         return;
       }
 
       this.excelService.setFileUrl(this.googleDriveFileUrl);
       localStorage.setItem('googleDriveFileUrl', this.googleDriveFileUrl);
       this.fileUrlConfigured = true;
-      this.toast.showToast('Google Drive file URL configured successfully!', 5000, 'success');
+      this.toast.showToast(this.i18n.t('Google Drive file URL configured successfully!'), 5000, 'success');
     } catch (error) {
-      this.toast.showToast(`Configuration failed: ${error}`, 5000, 'error');
+      this.toast.showToast(this.i18n.t('Configuration failed: {error}', { error }), 5000, 'error');
     }
   }
 
@@ -162,13 +187,13 @@ export class List implements OnInit {
     try {
       const fileId = this.googleDriveService.extractFileId(this.googleDriveFileUrl);
       if (!fileId) {
-        this.toast.showToast('Invalid file URL', 5000, 'error');
+        this.toast.showToast(this.i18n.t('Invalid file URL'), 5000, 'error');
         return;
       }
       const driveLink = `https://drive.google.com/file/d/${fileId}`;
       window.open(driveLink, '_blank');
     } catch (error) {
-      this.toast.showToast(`Failed to open file: ${error}`, 5000, 'error');
+      this.toast.showToast(this.i18n.t('Failed to open file: {error}', { error }), 5000, 'error');
     }
   }
 
@@ -176,9 +201,9 @@ export class List implements OnInit {
     if (!this.googleDriveFileUrl) return;
     
     navigator.clipboard.writeText(this.googleDriveFileUrl).then(() => {
-      this.toast.showToast('File URL copied to clipboard!', 3000, 'success');
+      this.toast.showToast(this.i18n.t('File URL copied to clipboard!'), 3000, 'success');
     }).catch(() => {
-      this.toast.showToast('Failed to copy URL', 3000, 'error');
+      this.toast.showToast(this.i18n.t('Failed to copy URL'), 3000, 'error');
     });
   }
 
@@ -186,22 +211,22 @@ export class List implements OnInit {
     this.googleDriveFileUrl = '';
     this.fileUrlConfigured = false;
     localStorage.removeItem('googleDriveFileUrl');
-    this.toast.showToast('Google Drive URL cleared', 5000, 'info');
+    this.toast.showToast(this.i18n.t('Google Drive URL cleared'), 5000, 'info');
   }
 
   async exportToGoogleDrive() {
     try {
       if (!this.fileUrlConfigured) {
-        this.toast.showToast('Please configure Google Drive file URL first', 5000, 'error');
+        this.toast.showToast(this.i18n.t('Please configure Google Drive file URL first'), 5000, 'error');
         return;
       }
 
       this.isLoading = true;
       const result = await this.excelService.autoSaveToGoogleDrive(this.guards, this.salaryData);
-      this.toast.showToast('✓ File downloaded! Now upload to Google Drive to sync.', 5000, 'success');
+      this.toast.showToast(this.i18n.t('✓ File downloaded! Now upload to Google Drive to sync.'), 5000, 'success');
     } catch (error) {
       console.error('Export error:', error);
-      this.toast.showToast(`Export failed: ${error}`, 5000, 'error');
+      this.toast.showToast(this.i18n.t('Export failed: {error}', { error }), 5000, 'error');
     } finally {
       this.isLoading = false;
     }
@@ -210,7 +235,7 @@ export class List implements OnInit {
   async importFromGoogleDrive() {
     try {
       if (!this.fileUrlConfigured) {
-        this.toast.showToast('Please configure Google Drive file URL first', 5000, 'error');
+        this.toast.showToast(this.i18n.t('Please configure Google Drive file URL first'), 5000, 'error');
         return;
       }
 
@@ -220,10 +245,10 @@ export class List implements OnInit {
       this.salaryData = data.salaryData;
       this.saveGuards();
       this.saveSalaries();
-      this.toast.showToast('Imported from Google Drive successfully!', 5000, 'success');
+      this.toast.showToast(this.i18n.t('Imported from Google Drive successfully!'), 5000, 'success');
     } catch (error) {
       console.error('Import error:', error);
-      this.toast.showToast(`Import failed: ${error}`, 5000, 'error');
+      this.toast.showToast(this.i18n.t('Import failed: {error}', { error }), 5000, 'error');
     } finally {
       this.isLoading = false;
     }
@@ -232,10 +257,10 @@ export class List implements OnInit {
   downloadExcelLocally() {
     try {
       this.excelService.downloadExcelLocally(this.guards, this.salaryData);
-      this.toast.showToast('Excel file downloaded successfully!', 5000, 'success');
+      this.toast.showToast(this.i18n.t('Excel file downloaded successfully!'), 5000, 'success');
     } catch (error) {
       console.error('Download error:', error);
-      this.toast.showToast(`Download failed: ${error}`, 5000, 'error');
+      this.toast.showToast(this.i18n.t('Download failed: {error}', { error }), 5000, 'error');
     }
   }
 
@@ -254,10 +279,10 @@ export class List implements OnInit {
       this.salaryData = data.salaryData;
       this.saveGuards();
       this.saveSalaries();
-      this.toast.showToast('Imported from file successfully!', 5000, 'success');
+      this.toast.showToast(this.i18n.t('Imported from file successfully!'), 5000, 'success');
     } catch (error) {
       console.error('Import error:', error);
-      this.toast.showToast(`Import failed: ${error}`, 5000, 'error');
+      this.toast.showToast(this.i18n.t('Import failed: {error}', { error }), 5000, 'error');
     } finally {
       this.isLoading = false;
     }

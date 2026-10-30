@@ -1,13 +1,13 @@
-<h2>Security Salary</h2>
+<h2>{{ 'Security Salary' | t }}</h2>
 
 <!-- Google Drive File URL Configuration (admin only: importing changes data) -->
 @if (auth.canEdit()) {
 <div class="selector-card acmt-card" style="animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1); background: #f5f5f5; border: 1px solid #ddd; margin-bottom: 1rem;">
 	<div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: space-between; margin-bottom: 0.75rem;">
 		<div>
-			<span style="font-weight: 500;">☁️ Google Drive Sync (URL-based)</span>
+			<span style="font-weight: 500;">{{ '☁️ Google Drive Sync (URL-based)' | t }}</span>
 			<div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
-				{{ fileUrlConfigured ? '✓ File URL configured' : '⚠️ No file URL configured' }}
+				{{ (fileUrlConfigured ? '✓ File URL configured' : '⚠️ No file URL configured') | t }}
 			</div>
 		</div>
 	</div>
@@ -24,21 +24,21 @@
 			(click)="configureFileUrl()" 
 			[disabled]="isLoading"
 			style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #4285f4; color: white; border: none; font-weight: 500; cursor: pointer; font-size: 0.9rem;">
-			{{ isLoading ? 'Processing...' : '✓ Set URL' }}
+			{{ (isLoading ? 'Processing...' : '✓ Set URL') | t }}
 		</button>
 		<button 
 			*ngIf="fileUrlConfigured"
 			(click)="copyFileUrl()" 
 			[disabled]="isLoading"
 			style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #9c27b0; color: white; border: none; font-weight: 500; cursor: pointer; font-size: 0.9rem;">
-			📋 Copy URL
+			{{ '📋 Copy URL' | t }}
 		</button>
 		<button 
 			*ngIf="fileUrlConfigured"
 			(click)="clearFileUrl()" 
 			[disabled]="isLoading"
 			style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #f44336; color: white; border: none; font-weight: 500; cursor: pointer; font-size: 0.9rem;">
-			Clear URL
+			{{ 'Clear URL' | t }}
 		</button>
 	</div>
 
@@ -48,28 +48,28 @@
 			(click)="exportToGoogleDrive()" 
 			[disabled]="isLoading"
 			style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #34a853; color: white; border: none; font-weight: 500; cursor: pointer; font-size: 0.9rem;">
-			{{ isLoading ? 'Exporting...' : '☁️ Export to Drive' }}
+			{{ (isLoading ? 'Exporting...' : '☁️ Export to Drive') | t }}
 		</button>
 		<button 
 			(click)="importFromGoogleDrive()" 
 			[disabled]="isLoading"
 			style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #34a853; color: white; border: none; font-weight: 500; cursor: pointer; font-size: 0.9rem;">
-			{{ isLoading ? 'Importing...' : '☁️ Import from Drive' }}
+			{{ (isLoading ? 'Importing...' : '☁️ Import from Drive') | t }}
 		</button>
 		<button 
 			(click)="downloadExcelLocally()" 
 			[disabled]="isLoading"
 			style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #ff9800; color: white; border: none; font-weight: 500; cursor: pointer; font-size: 0.9rem;">
-			{{ isLoading ? 'Downloading...' : '⬇️ Download Excel' }}
+			{{ (isLoading ? 'Downloading...' : '⬇️ Download Excel') | t }}
 		</button>
 		<button 
 			(click)="openGoogleDriveFile()" 
 			[disabled]="isLoading"
 			style="padding: 0.5rem 1rem; border-radius: 0.5rem; background: #1976d2; color: white; border: none; font-weight: 500; cursor: pointer; font-size: 0.9rem;">
-			🔗 Open in Drive
+			{{ '🔗 Open in Drive' | t }}
 		</button>
 		<label style="display: inline-block; padding: 0.5rem 1rem; border-radius: 0.5rem; background: #2196f3; color: white; font-weight: 500; cursor: pointer; font-size: 0.9rem;">
-			📁 Import File
+			{{ '📁 Import File' | t }}
 			<input 
 				type="file" 
 				accept=".xlsx,.xls" 
@@ -81,26 +81,26 @@
 
 	<!-- Helper Text -->
 	<div style="font-size: 0.8rem; color: #999; margin-top: 0.75rem; border-top: 1px solid #ddd; padding-top: 0.75rem;">
-		<strong>📖 Workflow:</strong>
+		<strong>{{ '📖 Workflow:' | t }}</strong>
 		<ul style="margin: 0.25rem 0; padding-left: 1.25rem;">
-			<li><strong>Setup:</strong> Create "ACMT.xlsx" in Google Drive, copy URL here</li>
-			<li><strong>Read Data:</strong> Click "☁️ Import from Drive" to load latest data</li>
-			<li><strong>Save Data:</strong> Click "☁️ Export to Drive" → Download → Upload to Google Drive</li>
-			<li><strong>Quick Access:</strong> Click "🔗 Open in Drive" to go to file directly</li>
-			<li><strong>Local Backup:</strong> Click "⬇️ Download Excel" for local copy</li>
+			<li><strong>{{ 'Setup:' | t }}</strong> {{ 'Create "ACMT.xlsx" in Google Drive, copy URL here' | t }}</li>
+			<li><strong>{{ 'Read Data:' | t }}</strong> {{ 'Click "☁️ Import from Drive" to load latest data' | t }}</li>
+			<li><strong>{{ 'Save Data:' | t }}</strong> {{ 'Click "☁️ Export to Drive" → Download → Upload to Google Drive' | t }}</li>
+			<li><strong>{{ 'Quick Access:' | t }}</strong> {{ 'Click "🔗 Open in Drive" to go to file directly' | t }}</li>
+			<li><strong>{{ 'Local Backup:' | t }}</strong> {{ 'Click "⬇️ Download Excel" for local copy' | t }}</li>
 		</ul>
 	</div>
 </div>
 }
 
 <div class="selector-card acmt-card" style="animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);">
-	<label class="selector-label" for="year">Year:
+	<label class="selector-label" for="year">{{ 'Year:' | t }}
 		<select class="selector-select" id="year" [(ngModel)]="selectedYear" name="year">
 			<option *ngFor="let y of years()" [ngValue]="y">{{ y }}</option>
 		</select>
 	</label>
 	@if (auth.canEdit()) {
-	<button class="selector-btn" (click)="addGuard()">Add Guard</button>
+	<button class="selector-btn" (click)="addGuard()">{{ 'Add Guard' | t }}</button>
 	}
 </div>
 
@@ -108,47 +108,47 @@
 <table class="acmt-table" style="min-width: 900px; animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);">
 	<thead style="background: #1976d2; color: #fff;">
 		<tr>
-			<th style="padding: 0.75rem; text-align: left;">Guard Name</th>
-			<th *ngFor="let month of months; let i = index" style="padding: 0.75rem; text-align: center;">{{ month }}</th>
-			<th style="padding: 0.75rem; text-align: center;">Actions</th>
+			<th style="padding: 0.75rem; text-align: left;">{{ 'Guard Name' | t }}</th>
+			<th *ngFor="let month of months; let i = index" style="padding: 0.75rem; text-align: center;">{{ month | t }}</th>
+			<th style="padding: 0.75rem; text-align: center;">{{ 'Actions' | t }}</th>
 		</tr>
 	</thead>
 	<tbody>
 		<tr *ngFor="let guard of guards; let idx = index">
 			<td style="padding: 0.75rem; min-width: 160px;">
-				<input type="text" [readOnly]="auth.readOnly()" [value]="guard.name || ''" (change)="renameGuard(idx, $event.target)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
+				<input type="text" [readOnly]="auth.readOnly()" [value]="(guard.name || '') | personName: guard.nameKn" (change)="nameChanged(idx, $event.target)" style="width: 100%; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc;">
 			</td>
 			<td *ngFor="let month of months; let i = index" style="padding: 0.5rem; text-align: center;">
 				<input type="number" min="0" [readOnly]="auth.readOnly()" [value]="getAmount(guard.name, i)" (input)="setAmount(guard.name, i, $event.target.value)" style="width: 80px; padding: 0.25rem; border-radius: 0.5rem; border: 1px solid #ccc; text-align: right;">
 			</td>
 			<td style="padding: 0.5rem; text-align: center;">
 				@if (auth.canEdit()) {
-				<button (click)="removeGuard(idx)" style="padding: 0.25rem 1rem; border-radius: 1rem; background: #eee; color: #333; border: none; font-weight: 500; cursor: pointer;">Remove</button>
+				<button (click)="removeGuard(idx)" style="padding: 0.25rem 1rem; border-radius: 1rem; background: #eee; color: #333; border: none; font-weight: 500; cursor: pointer;">{{ 'Remove' | t }}</button>
 				}
 			</td>
 		</tr>
 		<tr *ngIf="guards.length === 0">
-			<td colspan="15" style="padding: 1rem; text-align: center; color: #888;">No guards found. Please add guards.</td>
+			<td colspan="15" style="padding: 1rem; text-align: center; color: #888;">{{ 'No guards found. Please add guards.' | t }}</td>
 		</tr>
 	</tbody>
 </table>
 </div>
 
-<h3 style="margin-top: 3rem;">Yearly Salary Summary</h3>
+<h3 style="margin-top: 3rem;">{{ 'Yearly Salary Summary' | t }}</h3>
 <table class="acmt-table" style="max-width: 500px; margin-bottom: 2rem; margin-top: 1.5rem; animation: fadeIn 0.7s cubic-bezier(.4,2,.6,1);">
 	<thead style="background: #1976d2; color: #fff;">
 		<tr>
-			<th style="padding: 0.75rem; text-align: left;">Guard Name</th>
-			<th style="padding: 0.75rem; text-align: right;">Total Salary (₹)</th>
+			<th style="padding: 0.75rem; text-align: left;">{{ 'Guard Name' | t }}</th>
+			<th style="padding: 0.75rem; text-align: right;">{{ 'Total Salary (₹)' | t }}</th>
 		</tr>
 	</thead>
 	<tbody>
 		<tr *ngFor="let guard of guards">
-			<td style="padding: 0.75rem;">{{ guard.name }}</td>
+			<td style="padding: 0.75rem;">{{ guard.name | personName: guard.nameKn }}</td>
 			<td style="padding: 0.75rem; text-align: right;">{{ getTotal(guard.name) }}</td>
 		</tr>
 		<tr *ngIf="guards.length === 0">
-			<td colspan="2" style="padding: 1rem; text-align: center; color: #888;">No guards found.</td>
+			<td colspan="2" style="padding: 1rem; text-align: center; color: #888;">{{ 'No guards found.' | t }}</td>
 		</tr>
 	</tbody>
 </table>

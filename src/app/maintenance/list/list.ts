@@ -4,15 +4,18 @@ import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { LanguageService } from '../../i18n/language.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { PersonNamePipe } from '../../i18n/person-name.pipe';
 
 @Component({
   selector: 'app-list',
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, FormsModule, TranslatePipe, PersonNamePipe],
   templateUrl: './list.html',
   styleUrl: './list.scss',
 })
 export class List {
-  people: { name: string; unit: string }[] = [];
+  people: { name: string; unit: string; nameKn?: string }[] = [];
   selectedYear = new Date().getFullYear();
   months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -21,7 +24,7 @@ export class List {
   // Data structure: { [year]: { [personName]: { [month]: amount } } }
   maintenanceData: Record<string, Record<string, Record<string, number>>> = {};
 
-  constructor(public auth: AuthService, private toast: ToastService) {
+  constructor(public auth: AuthService, private toast: ToastService, private i18n: LanguageService) {
     this.loadPeople();
     this.loadMaintenance();
   }
@@ -38,7 +41,7 @@ export class List {
 
   saveMaintenance() {
     localStorage.setItem('maintenanceData', JSON.stringify(this.maintenanceData));
-    this.toast.showToast('Saved maintenance', 5000, 'success');
+    this.toast.showToast(this.i18n.t('Saved maintenance'), 5000, 'success');
   }
 
   getAmount(person: string, monthIdx: number): number | null {

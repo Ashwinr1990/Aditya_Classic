@@ -1,13 +1,17 @@
-import { Component, signal } from '@angular/core';
+import { Component, effect, signal, untracked } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { ToastService } from './services/toast.service';
 import { AuthService } from './services/auth.service';
 import { Login } from './login/login';
 import { AdminEmailPrompt } from './admin-email/admin-email-prompt';
+import { LanguageService } from './i18n/language.service';
+import { AutoTranslateService } from './i18n/auto-translate.service';
+import { LanguageToggle } from './i18n/language-toggle';
+import { TranslatePipe } from './i18n/translate.pipe';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Login, AdminEmailPrompt],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Login, AdminEmailPrompt, LanguageToggle, TranslatePipe],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -17,7 +21,23 @@ export class App {
   // Inline edit of the admin email in the header
   editingEmail = signal(false);
 
-  constructor(public toast: ToastService, public auth: AuthService) {}
+  constructor(
+    public toast: ToastService,
+    public auth: AuthService,
+    private i18n: LanguageService,
+    autoTranslate: AutoTranslateService,
+  ) {
+    effect(() => {
+      if (!autoTranslate.setupNeeded() || !auth.canEdit()) return;
+      untracked(() =>
+        toast.showToast(
+          i18n.t('Automatic Kannada translation is not set up yet. Add ANTHROPIC_API_KEY in the Netlify environment variables.'),
+          10000,
+          'error',
+        ),
+      );
+    });
+  }
 
   startEditEmail() {
     this.editingEmail.set(true);
@@ -32,12 +52,12 @@ export class App {
   saveAdminEmail(value: string) {
     const email = value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      this.toast.showToast('Please enter a valid email address', 4000, 'error');
+      this.toast.showToast(this.i18n.t('Please enter a valid email address'), 4000, 'error');
       return;
     }
     if (email !== this.auth.adminEmail()) {
       this.auth.saveAdminEmail(email);
-      this.toast.showToast('Admin email updated', 4000, 'success');
+      this.toast.showToast(this.i18n.t('Admin email updated'), 4000, 'success');
     }
     this.editingEmail.set(false);
   }

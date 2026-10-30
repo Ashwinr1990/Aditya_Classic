@@ -1,35 +1,36 @@
-<h2>All Data</h2>
+<h2>{{ 'All Data' | t }}</h2>
 
 <div class="selector-card acmt-card toolbar">
 	<div class="sheet-tabs" role="tablist">
 		@for (k of keys; track k) {
 		<button type="button" role="tab" [class.active]="k === key()" [attr.aria-selected]="k === key()" (click)="select(k)">
-			{{ labels[k] || k }} <span class="count">{{ counts()[k] }}</span>
+			{{ (labels[k] || k) | t }} <span class="count">{{ counts()[k] }}</span>
 		</button>
 		}
 	</div>
 	<div class="toolbar-row">
-		<select class="search-column" aria-label="Column to search in"
+		<select class="search-column" [attr.aria-label]="'Column to search in' | t"
 			[ngModel]="searchColumn()" (ngModelChange)="searchColumn.set($event)">
-			<option value="">All columns</option>
-			@for (c of columns(); track c) { <option [value]="c">{{ c }}</option> }
+			<option value="">{{ 'All columns' | t }}</option>
+			@for (c of columns(); track c) { <option [value]="c">{{ c | t }}</option> }
 		</select>
-		<input type="search" [placeholder]="searchColumn() ? 'Search in ' + searchColumn() : 'Search this table'"
-			aria-label="Search this table" [ngModel]="search()" (ngModelChange)="search.set($event)">
-		@if (search().trim()) { <span class="match-count">{{ visible().length }} of {{ rows().length }} rows</span> }
+		<input type="search"
+			[placeholder]="searchColumn() ? ('Search in {column}' | t: { column: (searchColumn() | t) }) : ('Search this table' | t)"
+			[attr.aria-label]="'Search this table' | t" [ngModel]="search()" (ngModelChange)="search.set($event)">
+		@if (search().trim()) { <span class="match-count">{{ '{shown} of {total} rows' | t: { shown: visible().length, total: rows().length } }}</span> }
 		<button type="button" class="reload" (click)="reloadFromCloud()" [disabled]="reloading()">
-			{{ reloading() ? 'Loading…' : '⟳ Reload from cloud' }}
+			{{ (reloading() ? 'Loading…' : '⟳ Reload from cloud') | t }}
 		</button>
 		@if (auth.canEdit() && selected().size) {
 		<button type="button" class="delete-selected" (click)="deleteSelected()">
-			Delete selected ({{ selected().size }})
+			{{ 'Delete selected ({count})' | t: { count: selected().size } }}
 		</button>
-		<button type="button" class="clear-selection" (click)="clearSelection()">Clear selection</button>
+		<button type="button" class="clear-selection" (click)="clearSelection()">{{ 'Clear selection' | t }}</button>
 		}
 	</div>
 	<p class="hint">
-		Changes here are saved to the cloud automatically.
-		@if (notes[key()]) { <br><strong>Note:</strong> {{ notes[key()] }} }
+		{{ 'Changes here are saved to the cloud automatically.' | t }}
+		@if (notes[key()]) { <br><strong>{{ 'Note:' | t }}</strong> {{ notes[key()] | t }} }
 	</p>
 </div>
 
@@ -39,14 +40,14 @@
 			<tr>
 				@if (auth.canEdit()) {
 				<th class="select">
-					<input type="checkbox" aria-label="Select all rows shown" [checked]="allVisibleSelected()"
+					<input type="checkbox" [attr.aria-label]="'Select all rows shown' | t" [checked]="allVisibleSelected()"
 						[indeterminate]="selected().size > 0 && !allVisibleSelected()"
 						[disabled]="!visible().length" (change)="toggleAllVisible()">
 				</th>
 				}
 				<th class="num">#</th>
-				@for (c of columns(); track c) { <th>{{ c }}</th> }
-				@if (auth.canEdit()) { <th class="actions">Actions</th> }
+				@for (c of columns(); track c) { <th>{{ c | t }}</th> }
+				@if (auth.canEdit()) { <th class="actions">{{ 'Actions' | t }}</th> }
 			</tr>
 		</thead>
 		<tbody>
@@ -54,31 +55,31 @@
 			<tr [class.editing]="editIndex() === item.index" [class.selected]="selected().has(item.index)">
 				@if (auth.canEdit()) {
 				<td class="select">
-					<input type="checkbox" [attr.aria-label]="'Select row ' + (item.index + 1)"
+					<input type="checkbox" [attr.aria-label]="'Select row {n}' | t: { n: item.index + 1 }"
 						[checked]="selected().has(item.index)" (change)="toggleRow(item.index)">
 				</td>
 				}
 				<td class="num">{{ item.index + 1 }}</td>
 				@if (editIndex() === item.index) {
 				@for (c of columns(); track c) {
-				<td><input [(ngModel)]="draft[c]" [attr.aria-label]="c" (keydown.enter)="saveEdit()" (keydown.escape)="cancelEdit()"></td>
+				<td><input [(ngModel)]="draft[c]" [attr.aria-label]="c | t" (keydown.enter)="saveEdit()" (keydown.escape)="cancelEdit()"></td>
 				}
 				<td class="actions">
-					<button type="button" class="save" (click)="saveEdit()">Save</button>
-					<button type="button" class="cancel" (click)="cancelEdit()">Cancel</button>
+					<button type="button" class="save" (click)="saveEdit()">{{ 'Save' | t }}</button>
+					<button type="button" class="cancel" (click)="cancelEdit()">{{ 'Cancel' | t }}</button>
 					@if (error()) { <div class="error">{{ error() }}</div> }
 				</td>
 				} @else {
 				@for (c of columns(); track c) {
 				<td>
 					@if (item.row[c] == null || item.row[c] === '') { <span class="empty">—</span> }
-					@else { {{ item.row[c] }} }
+					@else { {{ shown(item.row, c) }} }
 				</td>
 				}
 				@if (auth.canEdit()) {
 				<td class="actions">
-					<button type="button" class="edit" (click)="startEdit(item.index)" [disabled]="editIndex() !== null">Edit</button>
-					<button type="button" class="delete" (click)="deleteRow(item.index)">Delete</button>
+					<button type="button" class="edit" (click)="startEdit(item.index)" [disabled]="editIndex() !== null">{{ 'Edit' | t }}</button>
+					<button type="button" class="delete" (click)="deleteRow(item.index)">{{ 'Delete' | t }}</button>
 				</td>
 				}
 				}
@@ -86,7 +87,7 @@
 			} @empty {
 			<tr>
 				<td [attr.colspan]="columns().length + 3" class="none">
-					{{ rows().length ? 'No rows match the search.' : 'No data stored for ' + (labels[key()] || key()) + '.' }}
+					{{ rows().length ? ('No rows match the search.' | t) : ('No data stored for {label}.' | t: { label: ((labels[key()] || key()) | t) }) }}
 				</td>
 			</tr>
 			}

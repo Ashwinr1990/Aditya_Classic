@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { CloudSyncService } from './cloud-sync.service';
 import { PdfReportService } from './pdf-report.service';
 
-export type MailRecipient = { name: string; detail: string; email: string };
+export type MailRecipient = { name: string; nameKn?: string; detail: string; email: string; admin?: boolean };
 
 const SEND_URL = '/.netlify/functions/send-report';
 const SETTINGS_URL = '/.netlify/functions/mail-settings';
@@ -22,9 +22,9 @@ export class ReportMailService {
   recipients(): { list: MailRecipient[]; withoutEmail: number } {
     const list: MailRecipient[] = [];
     const admin = this.auth.adminEmail();
-    if (admin) list.push({ name: 'Admin', detail: '', email: admin });
+    if (admin) list.push({ name: 'Admin', detail: '', email: admin, admin: true });
     let withoutEmail = 0;
-    let people: { name: string; unit: string; email?: string }[] = [];
+    let people: { name: string; nameKn?: string; unit: string; email?: string }[] = [];
     try {
       people = JSON.parse(localStorage.getItem('people') || '[]');
     } catch {}
@@ -34,7 +34,7 @@ export class ReportMailService {
         continue;
       }
       if (list.some(r => r.email.toLowerCase() === p.email!.toLowerCase())) continue;
-      list.push({ name: p.name, detail: p.unit, email: p.email });
+      list.push({ name: p.name, nameKn: p.nameKn, detail: p.unit, email: p.email });
     }
     return { list, withoutEmail };
   }

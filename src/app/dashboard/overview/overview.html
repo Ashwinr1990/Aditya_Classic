@@ -1,4 +1,4 @@
-<h2>Dashboard</h2>
+<h2>{{ 'Dashboard' | t }}</h2>
 
 <style>
 .selector-card {
@@ -228,59 +228,69 @@
 
 <div class="selector-card acmt-card" style="animation: fadeInDown 0.7s cubic-bezier(.4,2,.6,1);">
 	<label class="selector-label" *ngIf="!showAll">
-		Month:
+		{{ 'Month:' | t }}
 		<select class="selector-select" [(ngModel)]="selectedMonth" (change)="onSelectionChange()">
-			<option *ngFor="let m of months; let i = index" [ngValue]="i">{{ m }}</option>
+			<option *ngFor="let m of months; let i = index" [ngValue]="i">{{ m | t }}</option>
 		</select>
 	</label>
 	<label class="selector-label">
-		Year:
+		{{ 'Year:' | t }}
 		<select class="selector-select" [(ngModel)]="selectedYear" (change)="onSelectionChange()">
 			<option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
 		</select>
 	</label>
 	@if (auth.canEdit()) {
-	<button class="selector-btn" (click)="refreshDashboard()">Refresh</button>
+	<button class="selector-btn" (click)="refreshDashboard()">{{ 'Refresh' | t }}</button>
 	<button class="selector-btn" (click)="toggleShowAll()">
-		{{ showAll ? 'Show Month' : 'Show All' }}
+		{{ (showAll ? 'Show Month' : 'Show All') | t }}
 	</button>
 	}
 </div>
 @if (auth.canEdit()) {
 <div style="margin-bottom: 2rem; margin-top: -1rem; display: flex; gap: 1.5rem; align-items: center;">
-	<span style="font-weight: 600; color: #1976d2; font-size: 1.1rem;">Data Backup & Restore:</span>
-	<button class="selector-btn" (click)="exportToExcel()" style="background: #388e3c;">Export All Data to Excel</button>
+	<span style="font-weight: 600; color: #1976d2; font-size: 1.1rem;">{{ 'Data Backup & Restore:' | t }}</span>
+	<button class="selector-btn" (click)="exportToExcel()" style="background: #388e3c;">{{ 'Export All Data to Excel' | t }}</button>
 	<button class="selector-btn" (click)="exportToPdf()" [disabled]="exportingPdf" style="background: #d84315;">
-		{{ exportingPdf ? 'Creating PDF...' : 'Download PDF Report' }}
+		{{ (exportingPdf ? 'Creating PDF...' : 'Download PDF Report') | t }}
 	</button>
-	<button class="selector-btn" (click)="openMailDialog()" style="background: #6a1b9a;">Send Email</button>
+	<button class="selector-btn" (click)="openMailDialog()" style="background: #6a1b9a;">{{ 'Send Email' | t }}</button>
 	<button class="selector-btn" (click)="shareOnWhatsapp()" [disabled]="sharingWhatsapp" style="background: #128c7e;">
-		{{ sharingWhatsapp ? 'Preparing PDF...' : 'Share on WhatsApp' }}
+		{{ (sharingWhatsapp ? 'Preparing PDF...' : 'Share on WhatsApp') | t }}
 	</button>
 	<label class="selector-btn" style="background: #1976d2; margin-bottom: 0; cursor: pointer;">
-		Import All Data from Excel
+		{{ 'Import All Data from Excel' | t }}
 		<input type="file" accept=".xlsx, .xls" (change)="importFromExcel($event)" style="display:none;" />
 	</label>
-	<button class="selector-btn danger-btn" (click)="openClearDialog()">Clear All Data</button>
+	<button class="selector-btn danger-btn" (click)="openClearDialog()">{{ 'Clear All Data' | t }}</button>
 </div>
 }
 
 <div class="modal-backdrop" *ngIf="showMailDialog" (click)="closeMailDialog()">
 	<form class="modal-card mail-card" (click)="$event.stopPropagation()" (ngSubmit)="sendMail()">
-		<h3 class="mail-title">Email PDF report · {{ selectedYear }}</h3>
+		<h3 class="mail-title">{{ 'Email PDF report · {year}' | t: { year: selectedYear } }}</h3>
 		@if (auth.adminEmail()) {
 		<p class="mail-from">
-			From: <strong>{{ auth.adminEmail() }}</strong> <span class="mail-note">(admin email)</span>
+			{{ 'From:' | t }} <strong>{{ auth.adminEmail() }}</strong> <span class="mail-note">{{ '(admin email)' | t }}</span>
 			@if (mailSettingsLoading) {
-			<span class="mail-note"> · checking email setup…</span>
+			<span class="mail-note"> · {{ 'checking email setup…' | t }}</span>
 			} @else if (mailSettings?.configured && !showMailSetup) {
-			<span class="mail-ok"> · ✓ email set up</span>
-			<button type="button" class="link-btn" (click)="showMailSetup = true">change password</button>
+			<span class="mail-ok"> · {{ '✓ email set up' | t }}</span>
+			<button type="button" class="link-btn" (click)="showMailSetup = true">{{ 'change password' | t }}</button>
 			}
 		</p>
 		@if (showMailSetup) {
 		<div class="mail-setup">
-			<strong>Email setup</strong>
+			<strong>{{ 'Email setup' | t }}</strong>
+			@if (i18n.lang() === 'kn') {
+			<p class="mail-note">
+				{{ auth.adminEmail() }} ಖಾತೆಗೆ ಸಾಮಾನ್ಯ Gmail ಪಾಸ್‌ವರ್ಡ್ ಅಲ್ಲ, ಒಂದು <b>ಆ್ಯಪ್ ಪಾಸ್‌ವರ್ಡ್</b> ಬೇಕು.
+				ಆ ಖಾತೆಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ,
+				<a href="https://myaccount.google.com/security" target="_blank" rel="noopener">2-ಹಂತದ ಪರಿಶೀಲನೆ</a> ಆನ್ ಮಾಡಿ,
+				ನಂತರ
+				<a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>
+				ನಲ್ಲಿ ಒಂದನ್ನು ರಚಿಸಿ ಆ 16 ಅಕ್ಷರಗಳನ್ನು ಇಲ್ಲಿ ಅಂಟಿಸಿ. ಇದನ್ನು Gmail ನೊಂದಿಗೆ ಪರಿಶೀಲಿಸಲಾಗುತ್ತದೆ ಮತ್ತು ಸರ್ವರ್‌ನಲ್ಲಿ ಮಾತ್ರ ಸಂಗ್ರಹಿಸಲಾಗುತ್ತದೆ.
+			</p>
+			} @else {
 			<p class="mail-note">
 				Gmail needs an <b>App Password</b> for {{ auth.adminEmail() }}, not the normal Gmail password.
 				Sign in to that account, turn on
@@ -289,51 +299,52 @@
 				<a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>
 				and paste the 16 letters here. It is checked with Gmail and stored on the server only.
 			</p>
+			}
 			<div class="mail-setup-row">
 				<input type="password" [(ngModel)]="appPassword" [ngModelOptions]="{ standalone: true }"
-				       placeholder="abcd efgh ijkl mnop" autocomplete="off" aria-label="Gmail App Password"
+				       placeholder="abcd efgh ijkl mnop" autocomplete="off" [attr.aria-label]="'Gmail App Password' | t"
 				       (keydown.enter)="$event.preventDefault(); saveAppPassword()" />
 				<button type="button" class="selector-btn" style="background: #6a1b9a;"
 				        [disabled]="savingAppPassword || !appPassword.trim()" (click)="saveAppPassword()">
-					{{ savingAppPassword ? 'Checking...' : 'Save & test' }}
+					{{ (savingAppPassword ? 'Checking...' : 'Save & test') | t }}
 				</button>
 			</div>
 			<p class="modal-error" *ngIf="mailSetupError">{{ mailSetupError }}</p>
 		</div>
 		}
 		} @else {
-		<p class="modal-error">No admin email is saved. Log out and log in again as admin to add it; emails are always sent from the admin email.</p>
+		<p class="modal-error">{{ 'No admin email is saved. Log out and log in again as admin to add it; emails are always sent from the admin email.' | t }}</p>
 		}
 		@if (mailRecipients.length === 0) {
-		<p>No email addresses are saved yet. Add emails on the People page (Edit a person), then try again.</p>
+		<p>{{ 'No email addresses are saved yet. Add emails on the People page (Edit a person), then try again.' | t }}</p>
 		} @else {
 		<label class="mail-row mail-all">
 			<input type="checkbox" [checked]="allMailSelected()" (change)="toggleAllMail($any($event.target).checked)" />
-			<span>Select all ({{ mailSelected.size }} of {{ mailRecipients.length }} selected)</span>
+			<span>{{ 'Select all ({selected} of {total} selected)' | t: { selected: mailSelected.size, total: mailRecipients.length } }}</span>
 		</label>
 		<div class="mail-list">
 			@for (r of mailRecipients; track r.email) {
 			<label class="mail-row">
 				<input type="checkbox" [checked]="mailSelected.has(r.email)" (change)="toggleMail(r.email)" />
-				<span class="mail-name">{{ r.name }}@if (r.detail) { <small>· {{ r.detail }}</small> }</span>
+				<span class="mail-name">{{ r.admin ? ('Admin' | t) : (r.name | personName: r.nameKn) }}@if (r.detail) { <small>· {{ r.detail }}</small> }</span>
 				<span class="mail-address">{{ r.email }}</span>
 			</label>
 			}
 		</div>
 		}
 		@if (mailWithoutEmail > 0) {
-		<p class="mail-note">{{ mailWithoutEmail }} {{ mailWithoutEmail === 1 ? 'person has' : 'people have' }} no email saved and {{ mailWithoutEmail === 1 ? 'is' : 'are' }} not listed.</p>
+		<p class="mail-note">{{ (mailWithoutEmail === 1 ? '{count} person has no email saved and is not listed.' : '{count} people have no email saved and are not listed.') | t: { count: mailWithoutEmail } }}</p>
 		}
 		<label>
-			Message <span class="mail-note">(optional)</span>
-			<textarea name="mailMessage" [(ngModel)]="mailMessage" rows="3" placeholder="Added to the email above the report summary"></textarea>
+			{{ 'Message' | t }} <span class="mail-note">{{ '(optional)' | t }}</span>
+			<textarea name="mailMessage" [(ngModel)]="mailMessage" rows="3" [placeholder]="'Added to the email above the report summary' | t"></textarea>
 		</label>
-		<p class="mail-note">Each person gets a separate email, so recipients can't see each other's addresses.</p>
+		<p class="mail-note">{{ "Each person gets a separate email, so recipients can't see each other's addresses." | t }}</p>
 		<p class="modal-error" *ngIf="mailError">{{ mailError }}</p>
 		<div class="modal-actions">
-			<button type="button" class="selector-btn" (click)="closeMailDialog()" [disabled]="sendingMail">Cancel</button>
+			<button type="button" class="selector-btn" (click)="closeMailDialog()" [disabled]="sendingMail">{{ 'Cancel' | t }}</button>
 			<button type="submit" class="selector-btn" style="background: #6a1b9a;" [disabled]="sendingMail || mailSelected.size === 0 || !auth.adminEmail()">
-				{{ sendingMail ? 'Sending...' : 'Send (' + mailSelected.size + ')' }}
+				{{ sendingMail ? ('Sending...' | t) : ('Send ({count})' | t: { count: mailSelected.size }) }}
 			</button>
 		</div>
 	</form>
@@ -341,41 +352,49 @@
 
 <div class="modal-backdrop" *ngIf="showClearDialog" (click)="closeClearDialog()">
 	<form class="modal-card" (click)="$event.stopPropagation()" (ngSubmit)="confirmClearAll()">
-		<h3>Clear all data?</h3>
+		<h3>{{ 'Clear all data?' | t }}</h3>
+		@if (i18n.lang() === 'kn') {
+		<p>
+			ಇದು ಪ್ರತಿಯೊಂದು ದಾಖಲೆಯನ್ನು (ಸದಸ್ಯರು, ನಿರ್ವಹಣೆ, ಯುಟಿಲಿಟಿ ಬಿಲ್‌ಗಳು, ಭದ್ರತೆ, ಸಾಮಾನ್ಯ ನಿರ್ವಹಣೆ),
+			ಉಳಿಸಿದ ಎಕ್ಸೆಲ್ ಫೈಲ್ ಮತ್ತು ಅದರ ಎಲ್ಲಾ ಬ್ಯಾಕಪ್‌ಗಳನ್ನು ಆ್ಯಪ್ ಬಳಸುವ <strong>ಎಲ್ಲರಿಗೂ</strong> ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.
+			ನಂತರ ಆ್ಯಪ್ ಹೊಸದಾಗಿ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿದಂತೆ ಮೊದಲಿನಿಂದ ಪ್ರಾರಂಭವಾಗುತ್ತದೆ. ಇದನ್ನು ಹಿಂಪಡೆಯಲು ಸಾಧ್ಯವಿಲ್ಲ.
+		</p>
+		} @else {
 		<p>
 			This permanently deletes every record (people, maintenance, utilities, security, common maintenance),
 			the saved Excel file and all its backups, for <strong>everyone</strong> using the app.
 			The app will then start fresh like a new install. This cannot be undone.
 		</p>
+		}
 		<label>
-			Password
+			{{ 'Password' | t }}
 			<input type="password" name="clearPassword" [(ngModel)]="clearPassword" autocomplete="off" required autofocus />
 		</label>
 		<p class="modal-error" *ngIf="clearError">{{ clearError }}</p>
 		<div class="modal-actions">
-			<button type="button" class="selector-btn" (click)="closeClearDialog()" [disabled]="clearing">Cancel</button>
+			<button type="button" class="selector-btn" (click)="closeClearDialog()" [disabled]="clearing">{{ 'Cancel' | t }}</button>
 			<button type="submit" class="selector-btn danger-btn" [disabled]="clearing || !clearPassword">
-				{{ clearing ? 'Deleting...' : 'Delete everything' }}
+				{{ (clearing ? 'Deleting...' : 'Delete everything') | t }}
 			</button>
 		</div>
 	</form>
 </div>
 
 <div *ngIf="showAll" style="margin-top: 2rem;">
-	<h3>Month-wise Breakdown</h3>
+	<h3>{{ 'Month-wise Breakdown' | t }}</h3>
 	<table border="1" style="width:100%">
 		<thead>
 			<tr>
-				<th>Month</th>
-				<th>Maintenance</th>
-				<th>Utilities</th>
-				<th>Security</th>
-				<th>Common Maintenance</th>
+				<th>{{ 'Month' | t }}</th>
+				<th>{{ 'Maintenance' | t }}</th>
+				<th>{{ 'Utilities' | t }}</th>
+				<th>{{ 'Security' | t }}</th>
+				<th>{{ 'Common Maintenance' | t }}</th>
 			</tr>
 		</thead>
 		<tbody>
 			<tr *ngFor="let row of monthWiseSummary">
-				<td>{{ row.month }}</td>
+				<td>{{ row.month | t }}</td>
 				<td>₹{{ row.maintenance }}</td>
 				<td>₹{{ row.utilities }}</td>
 				<td>₹{{ row.security }}</td>
@@ -384,72 +403,72 @@
 		</tbody>
 	</table>
 
-	<h3 style="margin-top: 2rem;">Utility Details (All Months)</h3>
+	<h3 style="margin-top: 2rem;">{{ 'Utility Details (All Months)' | t }}</h3>
 	<div style="overflow-x: auto;">
 		<table border="1" style="width:100%; min-width: 700px;">
 			<thead>
 				<tr>
-					<th>Month</th>
-					<th>Type</th>
-					<th>Details</th>
-					<th>Amount (₹)</th>
+					<th>{{ 'Month' | t }}</th>
+					<th>{{ 'Type' | t }}</th>
+					<th>{{ 'Details' | t }}</th>
+					<th>{{ 'Amount (₹)' | t }}</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr *ngFor="let row of utilityAllDetails">
-					<td>{{ row.month }}</td>
-					<td>{{ row.type }}</td>
-					<td>{{ row.details }}</td>
+					<td>{{ row.month | t }}</td>
+					<td>{{ row.type | t }}</td>
+					<td>{{ row.details | userText }}</td>
 					<td>₹{{ row.amount }}</td>
 				</tr>
 				<tr *ngIf="utilityAllDetails.length === 0">
-					<td colspan="4" style="text-align: center; padding: 0.8rem; color: #666;">No utility details found for selected year.</td>
+					<td colspan="4" style="text-align: center; padding: 0.8rem; color: #666;">{{ 'No utility details found for selected year.' | t }}</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
 
-	<h3 style="margin-top: 2rem;">Security Salary Details (All Months)</h3>
+	<h3 style="margin-top: 2rem;">{{ 'Security Salary Details (All Months)' | t }}</h3>
 	<div style="overflow-x: auto;">
 		<table border="1" style="width:100%; min-width: 700px;">
 			<thead>
 				<tr>
-					<th>Month</th>
-					<th>Guard Name</th>
-					<th>Salary (₹)</th>
+					<th>{{ 'Month' | t }}</th>
+					<th>{{ 'Guard Name' | t }}</th>
+					<th>{{ 'Salary (₹)' | t }}</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr *ngFor="let row of securityAllDetails">
-					<td>{{ row.month }}</td>
-					<td>{{ row.guard }}</td>
+					<td>{{ row.month | t }}</td>
+					<td>{{ row.guard | personName: row.guardKn }}</td>
 					<td>₹{{ row.amount }}</td>
 				</tr>
 				<tr *ngIf="securityAllDetails.length === 0">
-					<td colspan="3" style="text-align: center; padding: 0.8rem; color: #666;">No security salary details found for selected year.</td>
+					<td colspan="3" style="text-align: center; padding: 0.8rem; color: #666;">{{ 'No security salary details found for selected year.' | t }}</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
 
-	<h3 style="margin-top: 2rem;">Common Maintenance Details (All Months)</h3>
+	<h3 style="margin-top: 2rem;">{{ 'Common Maintenance Details (All Months)' | t }}</h3>
 	<div style="overflow-x: auto;">
 		<table border="1" style="width:100%; min-width: 700px;">
 			<thead>
 				<tr>
-					<th>Month</th>
-					<th>Item</th>
-					<th>Cost (₹)</th>
+					<th>{{ 'Month' | t }}</th>
+					<th>{{ 'Item' | t }}</th>
+					<th>{{ 'Cost (₹)' | t }}</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr *ngFor="let row of commonAllDetails">
-					<td>{{ row.month }}</td>
-					<td>{{ row.item }}</td>
+					<td>{{ row.month | t }}</td>
+					<td>{{ row.item | userText: row.itemKn }}</td>
 					<td>₹{{ row.cost }}</td>
 				</tr>
 				<tr *ngIf="commonAllDetails.length === 0">
-					<td colspan="3" style="text-align: center; padding: 0.8rem; color: #666;">No common maintenance details found for selected year.</td>
+					<td colspan="3" style="text-align: center; padding: 0.8rem; color: #666;">{{ 'No common maintenance details found for selected year.' | t }}</td>
 				</tr>
 			</tbody>
 		</table>
@@ -457,46 +476,46 @@
 </div>
 <div style="display: flex; flex-wrap: wrap; gap: 2rem;">
 	<div style="flex: 2; min-width: 300px;">
-		<h3>Expense Tracker (Graph)</h3>
+		<h3>{{ 'Expense Tracker (Graph)' | t }}</h3>
 		<!-- Chart.js graph placeholder -->
 		<canvas id="expenseChart"></canvas>
 	</div>
 	<div style="flex: 1; min-width: 300px;">
-		<h3>Summary Table</h3>
+		<h3>{{ 'Summary Table' | t }}</h3>
 		<table border="1" style="width:100%">
 			<thead>
 				<tr>
-					<th>Category</th>
-					<th>Amount</th>
+					<th>{{ 'Category' | t }}</th>
+					<th>{{ 'Amount' | t }}</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr *ngFor="let row of summary; let i = index">
-					<td>{{ row.category }}</td>
+					<td>{{ row.category | t }}</td>
 					<td>₹{{ row.thisMonth }}</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
 	<div class="financial-column">
-		<h3>Financials <button class="info" data-tooltip="Collected = sum of maintenance payments collected. Used = utilities + security salaries + common maintenance costs. Savings = Collected - Used.">i</button></h3>
+		<h3>{{ 'Financials' | t }} <button class="info" [attr.data-tooltip]="'Collected = sum of maintenance payments collected. Used = utilities + security salaries + common maintenance costs. Savings = Collected - Used.' | t">i</button></h3>
 		<div class="financial-panel">
 			<div class="financial-row">
-				<span class="financial-label collected">Collected</span>
+				<span class="financial-label collected">{{ 'Collected' | t }}</span>
 				<span class="financial-value">₹{{ collectedAmountFormatted }}</span>
 			</div>
 			<div class="financial-row">
-				<span class="financial-label used">Used</span>
+				<span class="financial-label used">{{ 'Used' | t }}</span>
 				<span class="financial-value">₹{{ usedAmountFormatted }}</span>
 			</div>
 			<hr />
 			<div class="financial-row savings" [ngClass]="{ 'positive': totalSavings >= 0, 'negative': totalSavings < 0, 'animate': animateSavings }">
-				<span class="financial-label">Savings</span>
+				<span class="financial-label">{{ 'Savings' | t }}</span>
 				<span class="financial-value">₹{{ totalSavingsFormatted }}</span>
 			</div>
 			@if (auth.canEdit()) {
 			<div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
-				<button class="selector-btn" (click)="downloadFinancials()" style="padding:0.4rem 0.8rem; font-size:0.95rem;">Download Financials</button>
+				<button class="selector-btn" (click)="downloadFinancials()" style="padding:0.4rem 0.8rem; font-size:0.95rem;">{{ 'Download Financials' | t }}</button>
 			</div>
 			}
 		</div>

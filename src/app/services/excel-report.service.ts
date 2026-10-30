@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import type { Workbook, Worksheet, Row, Cell } from 'exceljs';
 import { CloudSyncService, DATA_KEYS } from './cloud-sync.service';
+import { LanguageService } from '../i18n/language.service';
 
 // Styled Excel exports. ExcelJS is loaded only when exporting, so it doesn't slow app start.
-// The data sheets keep the exact layout the importer reads (header row 1, same column names);
-// the report sheets are extra and ignored on import.
+// The report sheets are in the app's current language. The data sheets keep the exact English layout the
+// importer reads (sheet names, header row 1, column names, stored values); the report sheets are ignored on import.
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
@@ -28,13 +29,13 @@ const FONT = 'Calibri';
 
 // Column names per data sheet, used for headers even when a sheet has no rows yet.
 const DATA_COLUMNS: Record<string, string[]> = {
-  people: ['name', 'unit', 'email'],
+  people: ['name', 'nameKn', 'unit', 'email'],
   maintenanceData: ['year', 'person', 'month', 'amount'],
   utilityData: ['year', 'type', 'month', 'amount'],
   miscellaneous: ['name', 'cost', 'date'],
-  guards: ['name'],
+  guards: ['name', 'nameKn'],
   salaryData: ['year', 'guard', 'month', 'amount'],
-  commonItems: ['desc', 'cost', 'month', 'year'],
+  commonItems: ['desc', 'descKn', 'cost', 'month', 'year'],
   adminProfile: ['email'],
 };
 const MONEY_COLUMNS = ['amount', 'cost'];
@@ -47,7 +48,8 @@ export type YearGrid = {
   title: string;
   label: string;
   data: Record<string, Record<string, number>>;
-  names: { name: string; sub?: string }[];
+  // name: the key in `data`; shown: the name as printed, in the report's language
+  names: { name: string; sub?: string; shown: string }[];
   markUnpaid: boolean;
 };
 /** Everything shown in a yearly report; shared by the Excel and PDF exports so they always agree. */
@@ -62,7 +64,7 @@ export type YearReport = {
 
 @Injectable({ providedIn: 'root' })
 export class ExcelReportService {
-  constructor(private cloudSync: CloudSyncService) {}
+  constructor(private cloudSync: CloudSyncService, private i18n: LanguageService) {}
 
   /** Full export: report sheets for `year` plus every data sheet (re-importable). */
   async exportAll(year: number): Promise<void> {
@@ -74,13 +76,19 @@ export class ExcelReportService {
     await this.download(wb, `ACMT-Data-${this.today()}.xlsx`);
   }
 
-  /** Totals and per-month tables for one year, read from the saved app data. */
+  /** Totals and per-month tables for one year, read from the saved app data, in the app's current language. */
   yearReport(year: number): YearReport {
+    const t = (text: string) => this.i18n.t(text, { year });
     const months = this.monthlyTotals(year);
     const collected = months.reduce((s, m) => s + m.maintenance, 0);
     const used = months.reduce((s, m) => s + m.utilities + m.security + m.common, 0);
     // Miscellaneous expenses count as utilities on the dashboard, so show them as a row too.
     const utilities = { ...(this.read<Nested>('utilityData', {})[year] ?? {}), Miscellaneous: this.miscByMonth(year) };
+    // Kannada spellings saved for people and guards
+    const kannadaNames = (key: string) =>
+      new Map(this.read<{ name: string; nameKn?: string }[]>(key, []).map(p => [p.name, p.nameKn]));
+    const peopleKn = kannadaNames('people');
+    const guardsKn = kannadaNames('guards');
     return {
       year,
       months,
@@ -89,18 +97,22 @@ export class ExcelReportService {
       savings: collected - used,
       grids: [
         {
-          sheetName: `Maintenance ${year}`, title: `Maintenance Collection · ${year}`, label: 'Resident',
-          data: this.read<Nested>('maintenanceData', {})[year] ?? {}, names: this.maintenanceRows(), markUnpaid: true,
+          sheetName: t('Maintenance {year}'), title: t('Maintenance Collection · {year}'), label: t('Resident'),
+          data: this.read<Nested>('maintenanceData', {})[year] ?? {},
+          names: this.maintenanceRows().map(n => ({ ...n, shown: this.i18n.name(n.name, peopleKn.get(n.name)) })),
+          markUnpaid: true,
         },
         {
-          sheetName: `Utilities ${year}`, title: `Utility Bills · ${year}`, label: 'Utility', data: utilities,
-          names: [...this.namesWithDefaults(['Electricity', 'Water', 'BBMP'], 'utilityData', year), { name: 'Miscellaneous' }],
+          sheetName: t('Utilities {year}'), title: t('Utility Bills · {year}'), label: t('Utility'), data: utilities,
+          names: [...this.namesWithDefaults(['Electricity', 'Water', 'BBMP'], 'utilityData', year), 'Miscellaneous']
+            .map(name => ({ name, shown: this.i18n.t(name) })),
           markUnpaid: false,
         },
         {
-          sheetName: `Security ${year}`, title: `Security Salaries · ${year}`, label: 'Guard',
+          sheetName: t('Security {year}'), title: t('Security Salaries · {year}'), label: t('Guard'),
           data: this.read<Nested>('salaryData', {})[year] ?? {},
-          names: this.namesWithDefaults(this.read<{ name: string }[]>('guards', []).map(g => g.name), 'salaryData', year),
+          names: this.namesWithDefaults(this.read<{ name: string }[]>('guards', []).map(g => g.name), 'salaryData', year)
+            .map(name => ({ name, shown: this.i18n.name(name, guardsKn.get(name)) })),
           markUnpaid: false,
         },
         this.commonGrid(year),
@@ -111,6 +123,7 @@ export class ExcelReportService {
   // Common maintenance items for the year, one row per description (items store months 0-11).
   private commonGrid(year: number): YearGrid {
     const data: Record<string, Record<string, number>> = {};
+    const kannada: Record<string, string | undefined> = {};
     for (const item of this.read<any[]>('commonItems', [])) {
       if (Number(item?.year) !== year) continue;
       const month = Number(item?.month);
@@ -119,10 +132,18 @@ export class ExcelReportService {
       const mm = String(month + 1).padStart(2, '0');
       data[name] ??= {};
       data[name][mm] = (data[name][mm] || 0) + (Number(item?.cost) || 0);
+      kannada[name] ??= item?.descKn;
     }
     return {
-      sheetName: `Common Maint. ${year}`, title: `Common Maintenance · ${year}`, label: 'Item',
-      data, names: Object.keys(data).map(name => ({ name })), markUnpaid: false,
+      sheetName: this.i18n.t('Common Maint. {year}', { year }),
+      title: this.i18n.t('Common Maintenance · {year}', { year }),
+      label: this.i18n.t('Item'),
+      data,
+      names: Object.keys(data).map(name => ({
+        name,
+        shown: name === 'Other' ? this.i18n.t(name) : this.i18n.text(name, kannada[name]),
+      })),
+      markUnpaid: false,
     };
   }
 
@@ -137,7 +158,8 @@ export class ExcelReportService {
 
   private addSummarySheet(wb: Workbook, report: YearReport) {
     const { year, months, collected, used, savings } = report;
-    const ws = wb.addWorksheet('Summary', {
+    const t = (text: string) => this.i18n.t(text);
+    const ws = wb.addWorksheet(t('Summary'), {
       properties: { tabColor: { argb: COLOR.green } },
       views: [{ showGridLines: false }],
       pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
@@ -145,13 +167,13 @@ export class ExcelReportService {
     ws.columns = [
       { width: 16 }, { width: 17 }, { width: 17 }, { width: 17 }, { width: 16 }, { width: 15 }, { width: 15 },
     ];
-    this.addBanner(ws, 'Aditya Classic Association', `Financial Summary · ${year}`, 7);
+    this.addBanner(ws, t('Aditya Classic Association'), this.i18n.t('Financial Summary · {year}', { year }), 7);
 
     // Headline cards: Collected / Used / Savings
     const cards: [string, number, string, string][] = [
-      ['Collected', collected, COLOR.green, COLOR.greenFill],
-      ['Used', used, COLOR.red, COLOR.redFill],
-      ['Savings', savings, savings >= 0 ? COLOR.green : COLOR.red, savings >= 0 ? COLOR.greenFill : COLOR.redFill],
+      [t('Collected'), collected, COLOR.green, COLOR.greenFill],
+      [t('Used'), used, COLOR.red, COLOR.redFill],
+      [t('Savings'), savings, savings >= 0 ? COLOR.green : COLOR.red, savings >= 0 ? COLOR.greenFill : COLOR.redFill],
     ];
     const cardCols = [[1, 2], [3, 4], [5, 7]];
     cards.forEach(([label, value, color, fill], i) => {
@@ -186,13 +208,13 @@ export class ExcelReportService {
 
     // Month-by-month table
     const top = 8;
-    this.sectionTitle(ws, top, 'Month-by-month breakdown', 7);
-    const headers = ['Month', 'Maintenance', 'Utilities', 'Security', 'Common Maint.', 'Total Spent', 'Balance'];
+    this.sectionTitle(ws, top, t('Month-by-month breakdown'), 7);
+    const headers = ['Month', 'Maintenance', 'Utilities', 'Security', 'Common Maint.', 'Total Spent', 'Balance'].map(t);
     this.headerRow(ws.getRow(top + 1), headers);
     months.forEach((m, i) => {
       const spent = m.utilities + m.security + m.common;
       const row = ws.getRow(top + 2 + i);
-      row.values = [m.month, m.maintenance, m.utilities, m.security, m.common, spent, m.maintenance - spent];
+      row.values = [t(m.month), m.maintenance, m.utilities, m.security, m.common, spent, m.maintenance - spent];
       this.bodyRow(row, 7, i, [2, 3, 4, 5, 6, 7]);
       row.getCell(7).font = {
         name: FONT, bold: true,
@@ -209,13 +231,13 @@ export class ExcelReportService {
       used,
       savings,
     ];
-    totalRow.values = ['Total', ...['B', 'C', 'D', 'E', 'F', 'G'].map((c, i) => ({
+    totalRow.values = [t('Total'), ...['B', 'C', 'D', 'E', 'F', 'G'].map((c, i) => ({
       formula: `SUM(${c}${first}:${c}${last})`, result: colTotals[i],
     }))];
     this.totalRow(totalRow, 7, [2, 3, 4, 5, 6, 7]);
 
     const note = ws.getCell(top + 16, 1);
-    note.value = 'Collected = maintenance payments.  Used = utilities (incl. miscellaneous) + security salaries + common maintenance.  Savings = Collected − Used.';
+    note.value = t('Collected = maintenance payments.  Used = utilities (incl. miscellaneous) + security salaries + common maintenance.  Savings = Collected - Used.');
     note.font = { name: FONT, italic: true, size: 9, color: { argb: COLOR.muted } };
     ws.mergeCells(top + 16, 1, top + 16, 7);
   }
@@ -224,8 +246,9 @@ export class ExcelReportService {
 
   private addGridSheet(
     wb: Workbook, sheetName: string, title: string, label: string,
-    data: Record<string, Record<string, number>>, names: { name: string; sub?: string }[], markUnpaid = false,
+    data: Record<string, Record<string, number>>, names: YearGrid['names'], markUnpaid = false,
   ) {
+    const t = (text: string) => this.i18n.t(text);
     const hasSub = names.some(n => n.sub);
     const lead = hasSub ? 2 : 1; // label (+ unit) columns before the months
     const totalCols = lead + 12 + 1;
@@ -240,8 +263,8 @@ export class ExcelReportService {
       ...MONTHS.map(() => ({ width: 11 })),
       { width: 14 },
     ];
-    this.addBanner(ws, 'Aditya Classic Association', title, totalCols);
-    this.headerRow(ws.getRow(4), [label, ...(hasSub ? ['House No.'] : []), ...MONTHS.map(m => m.slice(0, 3)), 'Total']);
+    this.addBanner(ws, t('Aditya Classic Association'), title, totalCols);
+    this.headerRow(ws.getRow(4), [label, ...(hasSub ? [t('House No.')] : []), ...MONTHS.map(m => t(m.slice(0, 3))), t('Total')]);
 
     const moneyCols = Array.from({ length: 13 }, (_, i) => lead + 1 + i);
     const colTotals = new Array(13).fill(0);
@@ -254,7 +277,7 @@ export class ExcelReportService {
       colTotals[12] += rowTotal;
       const firstCol = this.colLetter(lead + 1), lastCol = this.colLetter(lead + 12);
       row.values = [
-        n.name, ...(hasSub ? [n.sub ?? ''] : []), ...months,
+        n.shown, ...(hasSub ? [n.sub ?? ''] : []), ...months,
         { formula: `SUM(${firstCol}${r}:${lastCol}${r})`, result: rowTotal },
       ];
       this.bodyRow(row, totalCols, i, moneyCols);
@@ -270,14 +293,14 @@ export class ExcelReportService {
 
     if (names.length === 0) {
       const cell = ws.getCell(5, 1);
-      cell.value = 'No entries for this year';
+      cell.value = t('No entries for this year');
       cell.font = { name: FONT, italic: true, color: { argb: COLOR.muted } };
       return;
     }
     const lastRow = 4 + names.length;
     const totalRow = ws.getRow(lastRow + 1);
     totalRow.values = [
-      'Total', ...(hasSub ? [''] : []),
+      t('Total'), ...(hasSub ? [''] : []),
       ...moneyCols.map((c, i) => ({
         formula: `SUM(${this.colLetter(c)}5:${this.colLetter(c)}${lastRow})`, result: colTotals[i],
       })),
@@ -286,13 +309,13 @@ export class ExcelReportService {
 
     if (markUnpaid) {
       const swatch = ws.getCell(lastRow + 3, 1);
-      swatch.value = 'Not paid';
+      swatch.value = t('Not paid');
       swatch.fill = this.solid(COLOR.unpaidFill);
       swatch.alignment = { horizontal: 'center' };
       swatch.font = { name: FONT, size: 9, color: { argb: COLOR.red } };
       swatch.border = this.border();
       const legend = ws.getCell(lastRow + 3, 2);
-      legend.value = '  Shaded cells: no payment recorded for that month';
+      legend.value = `  ${t('Shaded cells: no payment recorded for that month')}`;
       legend.font = { name: FONT, italic: true, size: 9, color: { argb: COLOR.muted } };
     }
   }
@@ -383,12 +406,12 @@ export class ExcelReportService {
     return rows;
   }
 
-  private namesWithDefaults(names: string[], key: string, year: number): { name: string }[] {
+  private namesWithDefaults(names: string[], key: string, year: number): string[] {
     const all = [...names];
     for (const name of Object.keys(this.read<Nested>(key, {})[year] ?? {})) {
       if (!all.includes(name)) all.push(name);
     }
-    return all.map(name => ({ name }));
+    return all;
   }
 
   private read<T>(key: string, fallback: T): T {
@@ -418,7 +441,7 @@ export class ExcelReportService {
     t.fill = this.solid(COLOR.primaryDark);
     t.alignment = { horizontal: 'center', vertical: 'middle' };
     const s = ws.getCell(2, 1);
-    s.value = `${subtitle}   ·   Exported ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    s.value = `${subtitle}   ·   ${this.i18n.t('Exported {date}', { date: this.i18n.shortDate(new Date()) })}`;
     s.font = { name: FONT, size: 11, color: { argb: COLOR.headerText } };
     s.fill = this.solid(COLOR.primary);
     s.alignment = { horizontal: 'center', vertical: 'middle' };

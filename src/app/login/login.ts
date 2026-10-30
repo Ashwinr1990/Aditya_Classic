@@ -3,17 +3,21 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CloudSyncService } from '../services/cloud-sync.service';
 import { AuthService } from '../services/auth.service';
+import { LanguageService } from '../i18n/language.service';
+import { LanguageToggle } from '../i18n/language-toggle';
+import { TranslatePipe } from '../i18n/translate.pipe';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule],
+  imports: [FormsModule, LanguageToggle, TranslatePipe],
   template: `
     <div class="login-page">
       <form class="login-card" (ngSubmit)="submit()">
-        <h1>Aditya Classic Association</h1>
-        <p>Enter the password to open the app.</p>
+        <div class="lang-row"><app-language-toggle /></div>
+        <h1>{{ 'Aditya Classic Association' | t }}</h1>
+        <p>{{ 'Enter the password to open the app.' | t }}</p>
         <label>
-          Password
+          {{ 'Password' | t }}
           <input
             type="password"
             name="password"
@@ -27,7 +31,7 @@ import { AuthService } from '../services/auth.service';
           <p class="login-error" role="alert">{{ error() }}</p>
         }
         <button type="submit" [disabled]="busy() || !password">
-          {{ busy() ? 'Checking...' : 'Open' }}
+          {{ (busy() ? 'Checking...' : 'Open') | t }}
         </button>
       </form>
     </div>
@@ -52,6 +56,14 @@ import { AuthService } from '../services/auth.service';
       display: flex;
       flex-direction: column;
       gap: 1rem;
+    }
+    .lang-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: -0.5rem;
+    }
+    .lang-row ::ng-deep .lang-toggle {
+      border-color: #1976d2;
     }
     h1 {
       margin: 0;
@@ -106,6 +118,7 @@ export class Login {
     private cloudSync: CloudSyncService,
     private auth: AuthService,
     private router: Router,
+    private i18n: LanguageService,
   ) {}
 
   async submit() {
@@ -119,7 +132,7 @@ export class Login {
         await this.router.navigateByUrl('/');
       }
     } catch (e: any) {
-      this.error.set(e?.message ?? 'Login failed');
+      this.error.set(this.i18n.t(e?.message ?? 'Login failed'));
       this.busy.set(false);
     }
   }

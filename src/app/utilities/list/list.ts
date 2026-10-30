@@ -3,10 +3,13 @@ import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { LanguageService } from '../../i18n/language.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { UserTextPipe } from '../../i18n/user-text.pipe';
 
 @Component({
   selector: 'app-list',
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, FormsModule, TranslatePipe, UserTextPipe],
   templateUrl: './list.html',
   styleUrl: './list.scss',
 })
@@ -22,7 +25,7 @@ export class List {
   miscellaneous: { name: string; cost: number; date: string }[] = [];
   newMisc = { name: '', cost: null as any, date: '' };
 
-  constructor(public auth: AuthService, private toast: ToastService) {
+  constructor(public auth: AuthService, private toast: ToastService, private i18n: LanguageService) {
     this.loadUtilityData();
     this.loadMiscellaneous();
   }
@@ -39,7 +42,7 @@ export class List {
 
   saveUtilityData() {
     localStorage.setItem('utilityData', JSON.stringify(this.utilityData));
-    this.toast.showToast('Saved utilities', 5000, 'success');
+    this.toast.showToast(this.i18n.t('Saved utilities'), 5000, 'success');
   }
 
   getAmount(type: string, monthIdx: number): number | null {
@@ -73,7 +76,7 @@ export class List {
 
   saveMiscellaneous() {
     localStorage.setItem('miscellaneous', JSON.stringify(this.miscellaneous));
-    this.toast.showToast('Saved miscellaneous items', 5000, 'success');
+    this.toast.showToast(this.i18n.t('Saved miscellaneous items'), 5000, 'success');
   }
 
   loadMiscellaneous() {

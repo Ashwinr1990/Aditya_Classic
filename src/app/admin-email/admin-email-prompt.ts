@@ -2,19 +2,21 @@ import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
+import { LanguageService } from '../i18n/language.service';
+import { TranslatePipe } from '../i18n/translate.pipe';
 
 /** Asks a logged-in admin for their email when none has been saved yet. */
 @Component({
   selector: 'app-admin-email-prompt',
-  imports: [FormsModule],
+  imports: [FormsModule, TranslatePipe],
   template: `
     @if (auth.needsAdminEmail() && !dismissed()) {
       <div class="backdrop">
         <form class="card" (ngSubmit)="save()" role="dialog" aria-labelledby="admin-email-title">
-          <h3 id="admin-email-title">Add admin email</h3>
-          <p>No email is saved for the admin yet. Enter it once and it will be saved with the association's data.</p>
+          <h3 id="admin-email-title">{{ 'Add admin email' | t }}</h3>
+          <p>{{ "No email is saved for the admin yet. Enter it once and it will be saved with the association's data." | t }}</p>
           <label>
-            Admin email
+            {{ 'Admin email' | t }}
             <input
               type="email"
               name="adminEmail"
@@ -29,8 +31,8 @@ import { ToastService } from '../services/toast.service';
             <p class="error" role="alert">{{ error() }}</p>
           }
           <div class="actions">
-            <button type="button" class="secondary" (click)="dismissed.set(true)">Later</button>
-            <button type="submit" [disabled]="!email.trim()">Save</button>
+            <button type="button" class="secondary" (click)="dismissed.set(true)">{{ 'Later' | t }}</button>
+            <button type="submit" [disabled]="!email.trim()">{{ 'Save' | t }}</button>
           </div>
         </form>
       </div>
@@ -113,15 +115,15 @@ export class AdminEmailPrompt {
   // "Later" hides the prompt until the next login
   dismissed = signal(false);
 
-  constructor(public auth: AuthService, private toast: ToastService) {}
+  constructor(public auth: AuthService, private toast: ToastService, private i18n: LanguageService) {}
 
   save() {
     const email = this.email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      this.error.set('Please enter a valid email address.');
+      this.error.set(this.i18n.t('Please enter a valid email address.'));
       return;
     }
     this.auth.saveAdminEmail(email);
-    this.toast.showToast('Admin email saved', 4000, 'success');
+    this.toast.showToast(this.i18n.t('Admin email saved'), 4000, 'success');
   }
 }

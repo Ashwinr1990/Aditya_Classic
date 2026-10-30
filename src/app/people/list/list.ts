@@ -3,14 +3,18 @@ import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { LanguageService } from '../../i18n/language.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { PersonNamePipe } from '../../i18n/person-name.pipe';
 
-type Person = { name: string; unit: string; email?: string };
+// nameKn: the name as written in Kannada, when the automatic spelling is wrong
+type Person = { name: string; unit: string; email?: string; nameKn?: string };
 // { [year]: { [personName]: { [month]: amount } } } — shared with the Maintenance page and dashboard
 type MaintenanceData = Record<string, Record<string, Record<string, number>>>;
 
 @Component({
   selector: 'app-list',
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, FormsModule, TranslatePipe, PersonNamePipe],
   templateUrl: './list.html',
   styleUrl: './list.scss',
 })
@@ -22,22 +26,27 @@ export class List {
   editIndex: number | null = null;
   dialogError = '';
 
-  constructor(public auth: AuthService, private toast: ToastService) {
+  constructor(public auth: AuthService, private toast: ToastService, private i18n: LanguageService) {
     this.loadPeople();
   }
 
   openDialog() {
     this.editIndex = null;
-    this.newPerson = { name: '', unit: '', email: '' };
+    this.newPerson = { name: '', unit: '', email: '', nameKn: '' };
     this.dialogError = '';
     this.showDialog = true;
   }
 
   openEdit(index: number) {
     this.editIndex = index;
-    this.newPerson = { email: '', ...this.people[index] };
+    this.newPerson = { email: '', nameKn: '', ...this.people[index] };
     this.dialogError = '';
     this.showDialog = true;
+  }
+
+  /** The Kannada spelling used when none is saved. */
+  kannadaName(name: string) {
+    return this.i18n.suggestedName(name);
   }
 
   closeDialog() {
@@ -51,9 +60,11 @@ export class List {
       unit: this.newPerson.unit.trim(),
       email: (this.newPerson.email ?? '').trim(),
     };
+    const nameKn = (this.newPerson.nameKn ?? '').trim();
+    if (nameKn) person.nameKn = nameKn;
     if (!person.name || !person.unit) return;
     if (person.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(person.email)) {
-      this.dialogError = 'Please enter a valid email address.';
+      this.dialogError = this.i18n.t('Please enter a valid email address.');
       return;
     }
 
@@ -62,18 +73,18 @@ export class List {
       (p, i) => i !== this.editIndex && p.name.toLowerCase() === person.name.toLowerCase()
     );
     if (duplicate) {
-      this.dialogError = `A person named "${person.name}" already exists.`;
+      this.dialogError = this.i18n.t('A person named "{name}" already exists.', { name: person.name });
       return;
     }
 
     if (this.editIndex === null) {
       this.people.push(person);
-      this.savePeople('Person added');
+      this.savePeople(this.i18n.t('Person added'));
     } else {
       const oldName = this.people[this.editIndex].name;
       this.people[this.editIndex] = person;
       if (oldName !== person.name) this.renameInMaintenance(oldName, person.name);
-      this.savePeople('Person updated');
+      this.savePeople(this.i18n.t('Person updated'));
     }
     this.closeDialog();
   }
@@ -81,15 +92,16 @@ export class List {
   deletePerson(index: number) {
     const person = this.people[index];
     const ok = window.confirm(
-      `Delete ${person.name} (${person.unit})?\n\nTheir maintenance payments for all years will also be deleted. This cannot be undone.`
+      this.i18n.t('Delete {name} ({unit})?', { name: person.name, unit: person.unit }) + '\n\n' +
+        this.i18n.t('Their maintenance payments for all years will also be deleted. This cannot be undone.')
     );
     if (!ok) return;
     this.people.splice(index, 1);
     this.removeFromMaintenance(person.name);
-    this.savePeople('Person deleted');
+    this.savePeople(this.i18n.t('Person deleted'));
   }
 
-  savePeople(message = 'Saved people') {
+  savePeople(message = this.i18n.t('Saved people')) {
     localStorage.setItem('people', JSON.stringify(this.people));
     this.toast.showToast(message, 5000, 'success');
   }

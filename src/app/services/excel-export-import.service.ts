@@ -29,16 +29,16 @@ export class ExcelExportImportService {
    * Export guards and salary data to Excel file
    */
   exportToExcel(
-    guards: { name: string }[],
+    guards: { name: string; nameKn?: string }[],
     salaryData: Record<string, Record<string, Record<string, number>>>,
     fileName: string = this.DEFAULT_FILE_NAME
   ): Blob {
     const workbook = XLSX.utils.book_new();
 
     // Create Guards sheet
-    const guardsData = guards.map((guard) => ({ 'Guard Name': guard.name }));
+    const guardsData = guards.map((guard) => ({ 'Guard Name': guard.name, 'Kannada Name': guard.nameKn ?? '' }));
     const guardsSheet = XLSX.utils.json_to_sheet(guardsData);
-    guardsSheet['!cols'] = [{ wch: 20 }];
+    guardsSheet['!cols'] = [{ wch: 20 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(workbook, guardsSheet, 'Guards');
 
     // Create Salary Data sheet with proper formatting
@@ -65,7 +65,7 @@ export class ExcelExportImportService {
   /**
    * Import guards and salary data from Excel file
    */
-  async importFromExcel(file: File): Promise<{ guards: { name: string }[]; salaryData: Record<string, Record<string, Record<string, number>>> }> {
+  async importFromExcel(file: File): Promise<{ guards: { name: string; nameKn?: string }[]; salaryData: Record<string, Record<string, Record<string, number>>> }> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event: any) => {
@@ -76,9 +76,10 @@ export class ExcelExportImportService {
           // Read Guards sheet
           const guardsSheet = workbook.Sheets['Guards'];
           const guardsData = XLSX.utils.sheet_to_json(guardsSheet) as any[];
-          const guards = guardsData.map((row) => ({
-            name: row['Guard Name'] || '',
-          }));
+          const guards = guardsData.map((row) => {
+            const nameKn = String(row['Kannada Name'] ?? '').trim();
+            return { name: row['Guard Name'] || '', ...(nameKn ? { nameKn } : {}) };
+          });
 
           // Read Salary Data sheet
           const salarySheet = workbook.Sheets['Salary Data'];
@@ -102,7 +103,7 @@ export class ExcelExportImportService {
    * User needs to manually upload to replace the file in Drive
    */
   async autoSaveToGoogleDrive(
-    guards: { name: string }[],
+    guards: { name: string; nameKn?: string }[],
     salaryData: Record<string, Record<string, Record<string, number>>>
   ): Promise<any> {
     try {
@@ -143,7 +144,7 @@ export class ExcelExportImportService {
   /**
    * Import from Google Drive using file URL
    */
-  async importFromGoogleDrive(): Promise<{ guards: { name: string }[]; salaryData: Record<string, Record<string, Record<string, number>>> }> {
+  async importFromGoogleDrive(): Promise<{ guards: { name: string; nameKn?: string }[]; salaryData: Record<string, Record<string, Record<string, number>>> }> {
     try {
       if (!this.fileUrl) {
         throw new Error('Please set Google Drive file URL first using setFileUrl()');
@@ -166,7 +167,7 @@ export class ExcelExportImportService {
    * Download Excel file locally
    */
   downloadExcelLocally(
-    guards: { name: string }[],
+    guards: { name: string; nameKn?: string }[],
     salaryData: Record<string, Record<string, Record<string, number>>>,
     fileName: string = this.DEFAULT_FILE_NAME
   ): void {
@@ -186,7 +187,7 @@ export class ExcelExportImportService {
    */
   private formatSalaryDataForExcel(
     salaryData: Record<string, Record<string, Record<string, number>>>,
-    guards: { name: string }[]
+    guards: { name: string; nameKn?: string }[]
   ): any[] {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const rows: any[] = [];
@@ -254,7 +255,7 @@ export class ExcelExportImportService {
    */
   private createSalaryChangeSummary(
     salaryData: Record<string, Record<string, Record<string, number>>>,
-    guards: { name: string }[]
+    guards: { name: string; nameKn?: string }[]
   ): any[] {
     const summaryData: any[] = [];
     const years = Object.keys(salaryData).sort().reverse();
